@@ -1,0 +1,124 @@
+{
+  "deployments": [
+    {
+      "deployment_id": "deploy-001",
+      "timestamp": "2025-12-14T10:00:00Z",
+      "version": "v1.2.3",
+      "service": "payment-service",
+      "logs": [
+        {
+          "time": "2025-12-14T10:00:05Z",
+          "level": "INFO",
+          "message": "Service started successfully on port 8080"
+        },
+        {
+          "time": "2025-12-14T10:00:10Z",
+          "level": "INFO",
+          "message": "Connected to database successfully"
+        },
+        {
+          "time": "2025-12-14T10:01:00Z",
+          "level": "INFO",
+          "message": "First request processed: /api/payment/create"
+        },
+        {
+          "time": "2025-12-14T10:02:00Z",
+          "level": "WARN",
+          "message": "Memory usage at 75%"
+        },
+        {
+          "time": "2025-12-14T10:03:00Z",
+          "level": "ERROR",
+          "message": "OutOfMemoryError: Java heap space"
+        },
+        {
+          "time": "2025-12-14T10:03:05Z",
+          "level": "ERROR",
+          "message": "Failed to process payment request"
+        },
+        {
+          "time": "2025-12-14T10:03:10Z",
+          "level": "ERROR",
+          "message": "Connection pool exhausted"
+        }
+      ],
+      "outcome": "unhealthy",
+      "action_taken": "rollback"
+    },
+    {
+      "deployment_id": "deploy-002",
+      "timestamp": "2025-12-14T11:00:00Z",
+      "version": "v1.2.4-hotfix",
+      "service": "payment-service",
+      "logs": [
+        {
+          "time": "2025-12-14T11:00:05Z",
+          "level": "INFO",
+          "message": "Service started successfully on port 8080"
+        },
+        {
+          "time": "2025-12-14T11:00:10Z",
+          "level": "INFO",
+          "message": "Connected to database successfully"
+        },
+        {
+          "time": "2025-12-14T11:00:15Z",
+          "level": "INFO",
+          "message": "Applied memory leak fix from PR #234"
+        },
+        {
+          "time": "2025-12-14T11:01:00Z",
+          "level": "INFO",
+          "message": "Processing 100 requests/sec, memory stable at 45%"
+        },
+        {
+          "time": "2025-12-14T11:05:00Z",
+          "level": "INFO",
+          "message": "All health checks passing"
+        }
+      ],
+      "outcome": "healthy",
+      "action_taken": "continue"
+    },
+    {
+      "deployment_id": "deploy-003",
+      "timestamp": "2025-12-14T12:00:00Z",
+      "version": "v1.3.0",
+      "service": "user-service",
+      "logs": [
+        {
+          "time": "2025-12-14T12:00:05Z",
+          "level": "INFO",
+          "message": "Service started successfully on port 3000"
+        },
+        {
+          "time": "2025-12-14T12:00:10Z",
+          "level": "INFO",
+          "message": "Connected to Redis cache"
+        },
+        {
+          "time": "2025-12-14T12:01:00Z",
+          "level": "WARN",
+          "message": "Slow query detected: getUserProfile took 2.3s"
+        },
+        {
+          "time": "2025-12-14T12:01:30Z",
+          "level": "ERROR",
+          "message": "Database connection timeout"
+        },
+        {
+          "time": "2025-12-14T12:01:35Z",
+          "level": "ERROR",
+          "message": "Failed to authenticate user"
+        },
+        {
+          "time": "2025-12-14T12:02:00Z",
+          "level": "ERROR",
+          "message": "Error rate: 45% (90/200 requests failed)"
+        }
+      ],
+      "outcome": "unhealthy",
+      "action_taken": "rollback"
+    }
+  ]
+}

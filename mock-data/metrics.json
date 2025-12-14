@@ -1,0 +1,88 @@
+{
+  "deployments": [
+    {
+      "deployment_id": "deploy-001",
+      "version": "v1.2.3",
+      "service": "payment-service",
+      "metrics": {
+        "response_time_ms": {
+          "min": 120,
+          "max": 8500,
+          "avg": 1850,
+          "p95": 5200,
+          "p99": 7800
+        },
+        "error_rate_percent": 35.4,
+        "requests_per_second": 87,
+        "cpu_usage_percent": 78,
+        "memory_usage_percent": 92,
+        "memory_usage_mb": 1843,
+        "network_io_mbps": 45,
+        "active_connections": 156,
+        "database_query_time_ms": 340,
+        "cache_hit_rate_percent": 62
+      },
+      "health_score": 28,
+      "anomalies": [
+        "Memory usage exceeds 90%",
+        "Error rate above threshold (>5%)",
+        "Response time degraded by 300%"
+      ]
+    },
+    {
+      "deployment_id": "deploy-002",
+      "version": "v1.2.4-hotfix",
+      "service": "payment-service",
+      "metrics": {
+        "response_time_ms": {
+          "min": 85,
+          "max": 320,
+          "avg": 145,
+          "p95": 220,
+          "p99": 280
+        },
+        "error_rate_percent": 0.8,
+        "requests_per_second": 142,
+        "cpu_usage_percent": 45,
+        "memory_usage_percent": 48,
+        "memory_usage_mb": 960,
+        "network_io_mbps": 52,
+        "active_connections": 201,
+        "database_query_time_ms": 85,
+        "cache_hit_rate_percent": 89
+      },
+      "health_score": 94,
+      "anomalies": []
+    },
+    {
+      "deployment_id": "deploy-003",
+      "version": "v1.3.0",
+      "service": "user-service",
+      "metrics": {
+        "response_time_ms": {
+          "min": 200,
+          "max": 12000,
+          "avg": 3400,
+          "p95": 8900,
+          "p99": 11200
+        },
+        "error_rate_percent": 45.0,
+        "requests_per_second": 34,
+        "cpu_usage_percent": 91,
+        "memory_usage_percent": 67,
+        "memory_usage_mb": 1340,
+        "network_io_mbps": 28,
+        "active_connections": 78,
+        "database_query_time_ms": 2300,
+        "cache_hit_rate_percent": 34
+      },
+      "health_score": 22,
+      "anomalies": [
+        "Database query time exceeds 2s",
+        "Error rate critical (>40%)",
+        "Cache hit rate degraded significantly",
+        "Response time p99 exceeds SLA"
+      ]
+    }
+  ]
+}
