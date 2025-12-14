@@ -4,6 +4,7 @@ services:
   kestra:
     image: kestra/kestra:latest
     container_name: kestra-devops-commander
+    command: server standalone --worker-thread=128
     ports:
       - "8080:8080"
       - "8081:8081"

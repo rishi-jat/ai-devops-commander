@@ -4,19 +4,23 @@ const KESTRA_API = 'http://localhost:8080/api/v1'
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch REAL executions from Kestra (no auth needed for local instance)
-    const response = await fetch(`${KESTRA_API}/executions?namespace=ai.devops.commander&size=20`, {
-      cache: 'no-store',
-      headers: {
-        'Accept': 'application/json'
-      }
+    // Fetch REAL executions from Kestra (local instance, no auth)
+    const response = await fetch(`${KESTRA_API}/executions?size=20`, {
+      cache: 'no-store'
     })
     
+    // If Kestra not responding or no executions yet, return empty array
     if (!response.ok) {
-      throw new Error(`Kestra API returned ${response.status}`)
+      console.log(`Kestra API status: ${response.status}`)
+      return NextResponse.json([])
     }
     
     const data = await response.json()
+    
+    // If no results yet, return empty
+    if (!data.results || data.results.length === 0) {
+      return NextResponse.json([])
+    }
     
     // Transform Kestra executions into deployment format for dashboard
     const deployments = (data.results || []).map((execution: any) => {
