@@ -174,21 +174,42 @@ This demo illustrates an end-to-end incident response workflow with automated ob
 
 ```
 ai-devops-commander/
-├── README.md                 # This file
+├── README.md                           # This file
+├── ARCHITECTURE.md                     # Detailed system design
+├── QUICKSTART.md                       # Fast setup guide
+├── CONTRIBUTING.md                     # How to contribute
+├── DEPLOYMENT.md                       # Production deployment
+├── setup.sh                            # One-command setup script
 ├── kestra/
-│   └── workflows/            # Orchestration workflows
-│       └── devops-loop.yml   # Main autonomous loop
-├── oumi/
-│   └── train_policy.ipynb    # RL training notebook
+│   ├── docker-compose.yml              # Kestra + PostgreSQL
+│   ├── README.md                       # Kestra-specific docs
+│   └── workflows/
+│       └── devops-loop.yml             # Main AI workflow (429 lines)
 ├── dashboard/
-│   ├── app/                  # Next.js dashboard app
-│   └── components/           # React components
-├── mock-data/
-│   ├── logs.json             # Simulated logs data
-│   ├── metrics.json          # Simulated metrics data
-│   └── deployments.json      # Deployment history data
-└── demo/
-    └── demo-script.md        # Step-by-step demo instructions
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── deployments/route.ts    # Fetch from Kestra API
+│   │   │   └── trigger/route.ts        # Webhook trigger
+│   │   ├── page.tsx                    # Main dashboard page
+│   │   └── layout.tsx                  # App layout
+│   ├── components/
+│   │   └── DeploymentDashboard.tsx     # Real-time UI component
+│   ├── package.json                    # Next.js 14, React 18
+│   └── vercel.json                     # Vercel deployment config
+├── cline-automation/
+│   ├── trigger-cline.sh                # Main automation entry
+│   ├── auto-fix-performance.sh         # Performance fixes
+│   └── auto-fix-generic.sh             # Fallback remediation
+├── cline-scripts/
+│   ├── auto-fix-memory-leak.sh         # Memory leak fixes
+│   └── auto-fix-database-timeout.sh    # DB optimization
+├── oumi/
+│   ├── train_deployment_policy.ipynb   # RL training notebook
+│   └── README.md                       # Oumi setup docs
+└── mock-data/
+    ├── logs.json                       # Sample log data
+    ├── metrics.json                    # Sample metrics
+    └── deployments.json                # Sample history
 ```
 
 ---
@@ -199,32 +220,42 @@ This is a prototype using mocked data and is intended for demonstration only.
 
 ### Prerequisites
 
-- Docker (for running Kestra)
-- Node.js 18+ (for the dashboard)
-- Python 3.10+ (for training the RL model)
-- Cline CLI installed
+- Docker (for running Kestra + PostgreSQL)
+- Node.js 18+ (for the Next.js dashboard)
+- Git (to clone the repo)
+
+That's it. No Python installation needed (runs in Kestra container).
 
 ### Quick start
 
 ```bash
-# Clone repo and install dependencies
-git clone <repo-url>
+# Clone repo
+git clone https://github.com/rishi-jat/ai-devops-commander
 cd ai-devops-commander
-npm install
 
-# Start Kestra
+# Use the setup script (easiest way)
+./setup.sh
+
+# Or manual setup:
+
+# 1. Start Kestra
 cd kestra
 docker-compose up -d
 
-# Run the dashboard
-cd dashboard
+# 2. Create workflow in Kestra UI
+# - Open http://localhost:8080
+# - Go to Flows → Create Flow
+# - Copy content from kestra/workflows/devops-loop.yml
+# - Save it
+
+# 3. Start dashboard
+cd ../dashboard
+npm install
 npm run dev
 
-# Trigger the workflow manually
-curl -X POST http://localhost:8080/api/v1/executions/webhook/devops/deploy
-
-# Open dashboard in browser
+# 4. Open browser
 open http://localhost:3000
+open http://localhost:8080
 ```
 
 ---
