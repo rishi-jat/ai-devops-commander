@@ -1,10 +1,14 @@
-
 # AI DevOps Commander
 
-**An autonomous AI system that deploys, observes, decides, and acts—transforming DevOps from reactive firefighting to intelligent automation.**
+> *An experimental AI-driven DevOps automation prototype that observes deployments, summarizes system signals, and automates response workflows.*
 
-Built with **Cline** · Orchestrated by **Kestra** · Deployed on **Vercel** · Powered by **Oumi** · Reviewed by **CodeRabbit**
+[![Built with Cline](https://img.shields.io/badge/Built%20with-Cline-blue)](https://github.com/cline/cline)
+[![Orchestrated by Kestra](https://img.shields.io/badge/Orchestrated%20by-Kestra-orange)](https://kestra.io)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://vercel.com)
+[![Powered by Oumi](https://img.shields.io/badge/Powered%20by-Oumi-green)](https://oumi.ai)
+[![Reviewed by CodeRabbit](https://img.shields.io/badge/Reviewed%20by-CodeRabbit-purple)](https://coderabbit.ai)
 
+---
 This README explains:
 - the real-world problem this project addresses
 - the system architecture
