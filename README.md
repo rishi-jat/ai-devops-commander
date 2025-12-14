@@ -263,13 +263,12 @@ This project uses:
 
 ---
 
-## Contact
+## Connect
 
-**Author:** Rishi  
-**Email:** [Your Email]  
-**Discord:** [Your Discord Handle]
+- Twitter/X: https://twitter.com/rishixtwt  
+- GitHub: https://github.com/rishi-jat  
+- LinkedIn: https://linkedin.com/in/rishi-jat-496245320  
 
 ---
 
-**Mission:** To explore how AI can help make DevOps less reactive and more automated through observation and learning.  
-**Status:** Prototype with mocked data and simulated workflows.
+*Made with ❤️ by Rishi.*
