@@ -2,6 +2,17 @@
 
 > *An experimental AI-driven DevOps automation prototype that observes deployments, summarizes system signals, and automates response workflows.*
 
+## ▶️ Watch the Demo & Project Walkthrough
+
+If you want to understand this project quickly, start here:
+
+- 🎬 **YouTube Demo**: https://www.youtube.com/ (replace with actual link)
+- 💼 **LinkedIn Post**: https://www.linkedin.com/posts/rishi-jat_finally-recorded-the-demo-this-isai-activity
+- 🐦 **X (Twitter) Post**: https://x.com/rishixtwt/status/2000539194574479696
+- 📦 **GitHub Repository**: https://github.com/rishi-jat/ai-devops-commander
+
+The demo shows how **Kestra orchestrates the workflow end to end**, how AI summarizes deployment signals, how decisions are made, and how everything is surfaced in the dashboard.
+
 [![Built with Cline](https://img.shields.io/badge/Built%20with-Cline-blue)](https://github.com/cline/cline)
 [![Orchestrated by Kestra](https://img.shields.io/badge/Orchestrated%20by-Kestra-orange)](https://kestra.io)
 [![Powered by Together AI](https://img.shields.io/badge/Powered%20by-Together%20AI-00C7B7)](https://together.ai)
