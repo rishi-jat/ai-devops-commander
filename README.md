@@ -6,7 +6,7 @@
 
 If you want to understand this project quickly, start here:
 
-- 🎬 **Demo Video**: [Watch on YouTube](https://www.linkedin.com/posts/rishi-jat_finally-recorded-the-demo-this-isai-activity-7406309185069617152-mFOS/)
+- 🎬 **Demo Video Yt**: [Watch on YouTube](https://www.youtube.com/watch?v=dwzV_YzquRo)
 - 💼 **LinkedIn Post**: [View post](https://www.linkedin.com/posts/rishi-jat_finally-recorded-the-demo-this-isai-activity-7406309185069617152-mFOS/)
 - 🐦 **X (Twitter) Post**: [View thread](https://x.com/rishixtwt/status/2000539194574479696)
 
