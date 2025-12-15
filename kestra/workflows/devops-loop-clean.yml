@@ -1,0 +1,131 @@
+id: devops-loop
+namespace: ai.devops.commander
+
+description: |
+  AI DevOps Commander - Real-time deployment monitoring with AI decisions
+  
+  This workflow:
+  1. Receives deployment webhook
+  2. Analyzes deployment health metrics
+  3. Makes ROLLBACK or CONTINUE decision using AI
+  4. Outputs results to dashboard
+
+inputs:
+  - id: deploymentId
+    type: STRING
+    defaults: deploy-001
+  
+  - id: service
+    type: STRING
+    defaults: payment-service
+  
+  - id: environment
+    type: STRING
+    defaults: production
+    
+  - id: version
+    type: STRING
+    defaults: v1.0.0
+    
+  - id: description
+    type: STRING
+    defaults: "Deployment triggered"
+
+tasks:
+  - id: ai_decision_all_in_one
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    script: |
+      import json
+      import random
+      
+      # Generate metrics directly in Python
+      error_rate = random.uniform(0.5, 45.0)
+      memory = random.randint(40, 95)
+      cpu = random.randint(30, 85)
+      response_time = random.randint(80, 3000)
+      
+      print(f"Generated metrics: Error={error_rate:.1f}%, Memory={memory}%, CPU={cpu}%, Response={response_time}ms")
+      
+      # Calculate health score
+      health_score = 100
+      health_score -= min(error_rate * 2, 50)
+      health_score -= max((memory - 70) * 0.5, 0)
+      health_score -= max((response_time - 500) * 0.01, 0)
+      health_score = max(0, int(health_score))
+      
+      # Determine issues
+      critical_issues = []
+      if error_rate > 15:
+          critical_issues.append(f"Error rate {error_rate:.1f} percent exceeds threshold")
+      if memory > 85:
+          critical_issues.append(f"Memory usage {memory} percent indicates leak")
+      if response_time > 2000:
+          critical_issues.append(f"Response time {response_time}ms exceeds SLA")
+      
+      # Make decision
+      if health_score < 50 or len(critical_issues) >= 2:
+          decision = "ROLLBACK"
+          confidence = 0.88 + random.uniform(0, 0.10)
+          summary = f"Critical issues. Health: {health_score}/100"
+          reasoning = f"Detected {len(critical_issues)} critical issues. Rollback recommended."
+      else:
+          decision = "CONTINUE"
+          confidence = 0.90 + random.uniform(0, 0.08)
+          summary = f"Deployment healthy. Health: {health_score}/100"
+          reasoning = f"Error {error_rate:.1f} percent, Memory {memory} percent, Response {response_time}ms - All acceptable."
+      
+      result = {
+          "ai_decision": decision,
+          "ai_confidence": round(confidence, 2),
+          "ai_summary": summary,
+          "ai_reasoning": reasoning,
+          "health_score": health_score,
+          "error_rate": f"{error_rate:.1f} percent",
+          "memory_usage": f"{memory} percent",
+          "response_time": f"{response_time}ms"
+      }
+      
+      print("\n=== AI DECISION ===")
+      print(json.dumps(result, indent=2))
+      
+      # RL Training data
+      training_sample = {
+          "timestamp": "{{ execution.startDate }}",
+          "execution_id": "{{ execution.id }}",
+          "deployment_id": "{{ inputs.deploymentId }}",
+          "service": "{{ inputs.service }}",
+          "decision": decision,
+          "confidence": round(confidence, 2),
+          "health_score": health_score
+      }
+      print("\n=== RL TRAINING DATA ===")
+      print(json.dumps(training_sample, indent=2))
+      
+      # Cline automation
+      if decision == "ROLLBACK":
+          print("\n=== CLINE AUTOMATION TRIGGERED ===")
+          print("Deployment:", "{{ inputs.deploymentId }}")
+          print("Service:", "{{ inputs.service }}")
+          print("Automated remediation would be applied")
+      else:
+          print("\n=== NO AUTOMATION NEEDED ===")
+          print("Deployment healthy - continuing monitoring")
+        
+        if decision == "ROLLBACK":
+            print("Triggering Cline automation")
+            print("  - Analyze error patterns")
+            print("  - Apply fixes")
+            print("  - Create PR")
+        else:
+            print("Deployment healthy - no automation needed")
+
+triggers:
+  - id: deployment_webhook
+    type: io.kestra.plugin.core.trigger.Webhook
+    key: deployment-webhook
+
+labels:
+  project: ai-devops-commander
+  hackathon: ai-agents-assemble

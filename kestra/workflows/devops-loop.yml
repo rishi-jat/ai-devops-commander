@@ -31,9 +31,7 @@ inputs:
     type: STRING
     defaults: "Deployment triggered"
 
-
 tasks:
-  # Generate random metrics for realistic demo
   - id: generate_metrics
     type: io.kestra.plugin.scripts.shell.Commands
     commands:
@@ -44,60 +42,33 @@ tasks:
         CPU_USAGE=$(awk -v min=30 -v max=85 'BEGIN{srand(); print int(min+rand()*(max-min))}')
         RESPONSE_TIME=$(awk -v min=80 -v max=3000 'BEGIN{srand(); print int(min+rand()*(max-min))}')
         
-        # Simulate log errors
-        if (( $(echo "$ERROR_RATE > 10" | bc -l) )); then
-          LOGS="ERROR: OutOfMemoryError in payment processor
-        ERROR: Database connection timeout after 30s
-        WARN: High memory pressure detected
-        ERROR: Failed to process 234 transactions"
-        else
-          LOGS="INFO: Deployment successful
-        INFO: All health checks passed
-        INFO: Transaction processing normal
-        INFO: Memory usage within limits"
-        fi
+        echo "{\"error_rate\": $ERROR_RATE, \"memory_usage\": $MEMORY_USAGE, \"cpu_usage\": $CPU_USAGE, \"response_time\": $RESPONSE_TIME}" > {{ outputDir }}/metrics.json
         
-        echo "ERROR_RATE=$ERROR_RATE" >> {{ outputDir }}/metrics.txt
-        echo "MEMORY_USAGE=$MEMORY_USAGE" >> {{ outputDir }}/metrics.txt
-        echo "CPU_USAGE=$CPU_USAGE" >> {{ outputDir }}/metrics.txt
-        echo "RESPONSE_TIME=$RESPONSE_TIME" >> {{ outputDir }}/metrics.txt
-        echo "LOGS<<EOF" >> {{ outputDir }}/metrics.txt
-        echo "$LOGS" >> {{ outputDir }}/metrics.txt
-        echo "EOF" >> {{ outputDir }}/metrics.txt
-        
-        echo "Generated metrics: Error=$ERROR_RATE%, Memory=$MEMORY_USAGE%, CPU=$CPU_USAGE%, Response=${RESPONSE_TIME}ms"
+        echo "Generated metrics: Error=$ERROR_RATE percent, Memory=$MEMORY_USAGE percent, CPU=$CPU_USAGE percent, Response=${RESPONSE_TIME}ms"
+    outputs:
+      - id: metrics
+        type: JSON
+        value: "{{ read(outputDir + '/metrics.json') }}"
     
-  # REAL AI DECISION using Together AI (Prize Category: Together AI)
   - id: ai_decision
     type: io.kestra.plugin.scripts.python.Script
     docker:
       image: python:3.11-slim
     beforeCommands:
-      - pip install requests openai
-    env:
-      DEPLOYMENT_ID: "{{ inputs.deploymentId }}"
-      SERVICE: "{{ inputs.service }}"
-      ENVIRONMENT: "{{ inputs.environment }}"
-      VERSION: "{{ inputs.version }}"
-      TOGETHER_API_KEY: "{{ secret('TOGETHER_API_KEY') }}"  # Set in Kestra secrets or use fallback
+      - pip install requests
     script: |
       import os
       import json
       import random
       
-      # Read generated metrics
-      metrics = {}
-      with open('{{ outputs.generate_metrics.outputFiles["metrics.txt"] }}', 'r') as f:
-          content = f.read()
-          for line in content.split('\n'):
-              if '=' in line and '<<' not in line:
-                  key, val = line.split('=', 1)
-                  metrics[key] = val
+      # Read generated metrics from previous task
+      metrics_str = '''{{ outputs.generate_metrics.metrics }}'''
+      metrics = json.loads(metrics_str)
       
-      error_rate = float(metrics.get('ERROR_RATE', '0'))
-      memory = int(metrics.get('MEMORY_USAGE', '50'))
-      cpu = int(metrics.get('CPU_USAGE', '50'))
-      response_time = int(metrics.get('RESPONSE_TIME', '100'))
+      error_rate = float(metrics.get('error_rate', 0))
+      memory = int(metrics.get('memory_usage', 50))
+      cpu = int(metrics.get('cpu_usage', 50))
+      response_time = int(metrics.get('response_time', 100))
       
       # Try to use real Together AI API
       use_real_ai = os.getenv('TOGETHER_API_KEY') and os.getenv('TOGETHER_API_KEY') != 'demo-key'
@@ -111,71 +82,9 @@ tasks:
                   base_url="https://api.together.xyz/v1"
               )
               
-              prompt = f"""You are an expert DevOps AI analyzing a production deployment.
-
-Deployment Details:
-- Service: {os.getenv('SERVICE')}
-- Version: {os.getenv('VERSION')}
-- Environment: {os.getenv('ENVIRONMENT')}
-
-Current Metrics:
-- Error Rate: {error_rate:.1f}%
-- Memory Usage: {memory}%
-- CPU Usage: {cpu}%
-- Response Time: {response_time}ms
-
-Based on these metrics, should we ROLLBACK or CONTINUE this deployment?
-
-Respond in JSON format:
-{{
-  "decision": "ROLLBACK" or "CONTINUE",
-  "confidence": 0.0-1.0,
-  "summary": "brief summary",
-  "reasoning": "detailed reasoning"
-}}"""
-
-              response = client.chat.completions.create(
-                  model="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-                  messages=[{"role": "user", "content": prompt}],
-                  temperature=0.7,
-                  max_tokens=500
-              )
-              
-              ai_response = response.choices[0].message.content
-              
-              # Parse AI response
-              try:
-                  ai_data = json.loads(ai_response)
-                  decision = ai_data.get('decision', 'CONTINUE')
-                  confidence = float(ai_data.get('confidence', 0.85))
-                  summary = ai_data.get('summary', 'AI analysis completed')
-                  reasoning = ai_data.get('reasoning', 'Based on metric analysis')
-              except:
-                  # Fallback if AI returns non-JSON
-                  decision = "ROLLBACK" if error_rate > 15 else "CONTINUE"
-                  confidence = 0.85
-                  summary = f"AI analysis: {ai_response[:100]}"
-                  reasoning = ai_response[:200]
-              
-              print(f"✅ Used REAL Together AI: {response.model}")
-              
-          except Exception as e:
-              print(f"⚠️  Together AI failed ({str(e)}), using fallback logic")
-              use_real_ai = False
-      
-      # Fallback: Smart algorithmic decision (if no API key or API fails)
-      if not use_real_ai:
-          # Calculate health score
-          health_score = 100
-          health_score -= min(error_rate * 2, 50)
-          health_score -= max((memory - 70) * 0.5, 0)
-          health_score -= max((response_time - 500) * 0.01, 0)
-          health_score = max(0, int(health_score))
-          
-          # AI Decision criteria
-          critical_issues = []
-          if error_rate > 15:
-              critical_issues.append(f"Error rate {error_rate:.1f}% exceeds 15% threshold")
+        Smart algorithmic decision logic
+      use_real_ai = False  # Set to True when you add TOGETHER_API_KEY secret in Kestra
+      ds 15% threshold")
           if memory > 85:
               critical_issues.append(f"Memory usage {memory}% indicates possible leak")
           if response_time > 2000:
@@ -205,32 +114,28 @@ Respond in JSON format:
           "ai_summary": summary,
           "ai_reasoning": reasoning,
           "health_score": health_score_value,
-          "error_rate": f"{error_rate:.1f}%",
-          "memory_usage": f"{memory}%",
+          "error_rate": f"{error_rate:.1f} percent",
+          "memory_usage": f"{memory} percent",
           "response_time": f"{response_time}ms",
-          "ai_provider": "together-ai" if use_real_ai else "algorithmic"
+          "ai_provider": "algorithmic"
       }
       
       print(json.dumps(result, indent=2))
       
-      # Save for outputs
       with open('{{ outputDir }}/decision.json', 'w') as f:
           json.dump(result, f)
-  
-  # Collect training data for Oumi RL (Prize Category: Oumi RL)
+    outputs:
+      - id: decision_data
   - id: collect_training_data
     type: io.kestra.plugin.scripts.python.Script
     docker:
       image: python:3.11-slim
     script: |
       import json
-      from datetime import datetime
       
-      # Load decision data
-      with open('{{ outputs.ai_decision.outputFiles["decision.json"] }}', 'r') as f:
-          decision_data = json.load(f)
+      decision_str = '''{{ outputs.ai_decision.decision_data }}'''
+      decision_data = json.loads(decision_str)
       
-      # Create RL training sample
       training_sample = {
           "timestamp": "{{ execution.startDate }}",
           "execution_id": "{{ execution.id }}",
@@ -245,20 +150,19 @@ Respond in JSON format:
           },
           "action": decision_data.get("ai_decision"),
           "confidence": decision_data.get("ai_confidence"),
-          "reward": None,  # Will be updated after observing outcome
+          "reward": None,
           "reasoning": decision_data.get("ai_reasoning")
       }
       
-      print("📊 RL Training Sample Collected:")
+      print("RL Training Sample Collected:")
       print(json.dumps(training_sample, indent=2))
       
-      # Save for RL model training
       with open('{{ outputDir }}/rl_training_sample.json', 'w') as f:
           json.dump(training_sample, f)
       
-      print("\n✅ Data ready for Oumi RL training pipeline")
-  
-  # Trigger Cline automation if ROLLBACK (Prize Category: Cline)
+      print("soning = f"Error rate {error_rate:.1f} percent is acceptable, memory at {memory} percent, response time {response_time}ms. No anomalies detected. Safe to proceed."
+          
+          health_score_value = health_score
   - id: cline_automation
     type: io.kestra.plugin.scripts.shell.Commands
     commands:
@@ -328,101 +232,8 @@ Respond in JSON format:
   - id: log_decision
     type: io.kestra.plugin.core.log.Log
     message: "AI Decision: {{ read(outputs.ai_decision.outputFiles['decision.json']) }}"
-    level: INFO
-
-# Output the results so dashboard can consume them
-outputs:
-  - id: ai_decision
-    type: STRING
-    value: "{{ json(read(outputs.ai_decision.outputFiles['decision.json'])).ai_decision }}"
-    
-  - id: ai_summary
-    type: STRING
-    value: "{{ json(read(outputs.ai_decision.outputFiles['decision.json'])).ai_summary }}"
-    
-  - id: ai_reasoning
-    type: STRING
-    value: "{{ json(read(outputs.ai_decision.outputFiles['decision.json'])).ai_reasoning }}"
-    
-  - id: ai_confidence
-    type: STRING  
-    value: "{{ json(read(outputs.ai_decision.outputFiles['decision.json'])).ai_confidence }}"
-    
-  - id: health_score
-    type: STRING
-    value: "{{ json(read(outputs.ai_decision.outputFiles['decision.json'])).health_score }}"
-    
-  - id: error_rate
-    type: STRING
-    value: "{{ json(read(outputs.ai_decision.outputFiles['decision.json'])).error_rate }}"
-    
-  - id: memory_usage
-    type: STRING
-    value: "{{ json(read(outputs.ai_decision.outputFiles['decision.json'])).memory_usage }}"
-          confidence = 97
-          issue = "All systems operational"
-      
-      summary = {
-          'status': status,
-          'issue': issue,
-          'impact': f"Affecting {data['service']} at {error_rate:.1f}% error rate",
-          'recommendation': recommendation,
-          'confidence': confidence,
-          'reasoning': f"Health score: {health_score}/100, Error rate: {error_rate}%, Memory: {memory_usage}%",
-          'timestamp': '{{ execution.startDate }}'
-      }
-      
-      print(json.dumps(summary, indent=2))
-      
-  # STEP 5: MAKE DECISION (Based on AI summary + RL model)
-  - id: make_decision
-    type: io.kestra.plugin.core.flow.Switch
-    value: "{{ outputs.ai_summarize.vars.recommendation }}"
-    cases:
-      ROLLBACK:
-        - id: execute_rollback
-          type: io.kestra.plugin.core.log.Log
-          message: |
-            🚨 DECISION: ROLLBACK
-            Deployment: {{ inputs.deployment_id }}
-            Reason: {{ outputs.ai_summarize.vars.issue }}
-            Confidence: {{ outputs.ai_summarize.vars.confidence }}%
-            
-            Executing automatic rollback...
-        
-        - id: rollback_action
-          type: io.kestra.plugin.scripts.shell.Commands
-          description: Execute rollback to previous version
-          commands:
-            - echo "Rolling back {{ inputs.service_name }} from {{ inputs.version }}"
-            - echo "Previous stable version restored"
-            - echo "Rollback completed successfully"
-      
-      CONTINUE:
-        - id: continue_monitoring
-          type: io.kestra.plugin.core.log.Log
-          message: |
-            ✅ DECISION: CONTINUE
-            Deployment: {{ inputs.deployment_id }}
-            Status: {{ outputs.ai_summarize.vars.status }}
-            Confidence: {{ outputs.ai_summarize.vars.confidence }}%
-            
-            Deployment healthy. Continuing monitoring...
-            
-  # STEP 6: RECORD OUTCOME (For RL learning)
-  - id: record_outcome
-    type: io.kestra.plugin.scripts.python.Script
-    description: Record deployment outcome for reinforcement learning model
-    docker:
-      image: python:3.11-slim
-    script: |
 
 triggers:
   - id: deployment_webhook
     type: io.kestra.plugin.core.trigger.Webhook
-    key: "deployment-webhook"
-
-labels:
-  project: ai-devops-commander
-  hackathon: ai-agents-assemble
-  sponsor: kestra
+    key: deployment-webhook

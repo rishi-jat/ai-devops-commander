@@ -1,445 +1,379 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Deployment {
+  id: string
   deployment_id: string
-  timestamp: string
   service: string
   version: string
+  environment: string
+  timestamp: string
   status: string
   ai_summary: string
   ai_decision: string
   ai_confidence: number
   ai_reasoning: string
-  action_taken: string
-  outcome: string
-  commit_message: string
-  action_timestamp: string
-}
-
-interface DeploymentData {
-  deployment_history: Deployment[]
+  health_score: number
+  metrics: {
+    error_rate: string
+    memory_usage: string
+    response_time: string
+  }
+  logs?: string
 }
 
 export default function DeploymentDashboard() {
-  const [data, setData] = useState<Deployment[]>([])
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [deployments, setDeployments] = useState<Deployment[]>([])
+  const [selected, setSelected] = useState<Deployment | null>(null)
   const [loading, setLoading] = useState(true)
-  const [triggering, setTriggering] = useState(false)
+  const [tab, setTab] = useState<'summary' | 'metrics' | 'logs'>('summary')
+
+  const fetchDeployments = async () => {
+    try {
+      const res = await fetch('/api/deployments')
+      if (res.ok) {
+        const data = await res.json()
+        setDeployments(data)
+        if (!selected && data.length > 0) setSelected(data[0])
+      }
+    } catch (e) {
+      console.error('Fetch failed:', e)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch('/api/deployments')
-        const result = await response.json()
-        setData(Array.isArray(result) ? result : result.deployment_history || [])
-        setLoading(false)
-      } catch (error) {
-        console.error('Failed to fetch deployments:', error)
-        setLoading(false)
-      }
-    }
-    fetchData()
-    const interval = setInterval(fetchData, 3000) // 3 second refresh for real-time demo
+    fetchDeployments()
+    const interval = setInterval(fetchDeployments, 5000)
     return () => clearInterval(interval)
   }, [])
 
-  const triggerDeployment = async (scenario: 'bad' | 'good') => {
-    setTriggering(true)
+  const trigger = async (type: 'good' | 'bad') => {
+    await fetch('/api/trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenario: type })
+    })
+    setTimeout(fetchDeployments, 2000)
+  }
+
+  const formatTime = (ts: string) => {
     try {
-      const deployments = {
-        bad: {
-          deploymentId: `deploy-${Date.now()}-bad`,
-          service: 'payment-service',
-          environment: 'production',
-          version: 'v1.2.3',
-          description: 'Deployment with memory leak (SHOULD ROLLBACK)'
-        },
-        good: {
-          deploymentId: `deploy-${Date.now()}-good`,
-          service: 'payment-service',
-          environment: 'production',
-          version: 'v1.2.4-hotfix',
-          description: 'Healthy deployment (SHOULD CONTINUE)'
-        }
-      }
-
-      const payload = deployments[scenario]
-      
-      const response = await fetch(
-        'http://localhost:8080/api/v1/executions/webhook/ai.devops.commander/devops-loop/deployment-webhook',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }
-      )
-
-      if (response.ok) {
-        alert(`✅ ${scenario.toUpperCase()} deployment triggered!\n\nCheck Kestra executions and this dashboard will update in ~3 seconds.`)
-      } else {
-        alert(`❌ Failed to trigger deployment: ${response.status}`)
-      }
-    } catch (error) {
-      alert(`❌ Error: ${error}`)
-    } finally {
-      setTriggering(false)
+      return new Date(ts).toLocaleString()
+    } catch {
+      return ts
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
-        <div className="text-gray-400 text-sm">Connecting to Kestra...</div>
-      </div>
-    )
+  const stats = {
+    total: deployments.length,
+    healthy: deployments.filter(d => d.ai_decision === 'CONTINUE').length,
+    rollback: deployments.filter(d => d.ai_decision === 'ROLLBACK').length
   }
 
-  // Empty state
-  if (!data || data.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0e14] via-[#0f1419] to-[#0a0e14] text-white">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center max-w-3xl px-6">
-            <div className="text-6xl mb-6">🤖</div>
-            <h1 className="text-3xl font-bold mb-4">AI DevOps Commander</h1>
-            <p className="text-gray-400 text-lg mb-8">
-              Waiting for deployments to monitor...
-            </p>
-            
-            {/* TRIGGER BUTTONS */}
-            <div className="mb-8 flex gap-4 justify-center">
-              <button
-                onClick={() => triggerDeployment('bad')}
-                disabled={triggering}
-                className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 rounded-lg font-semibold shadow-lg shadow-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {triggering ? '⏳ Triggering...' : '🔴 Trigger BAD Deployment'}
-              </button>
-              <button
-                onClick={() => triggerDeployment('good')}
-                disabled={triggering}
-                className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 rounded-lg font-semibold shadow-lg shadow-green-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {triggering ? '⏳ Triggering...' : '🟢 Trigger GOOD Deployment'}
-              </button>
-            </div>
-
-            <div className="bg-[#1a1f2e]/50 border border-gray-800 rounded-lg p-6 text-left">
-              <p className="text-gray-300 mb-3 font-semibold">What happens when you click:</p>
-              <ul className="text-gray-400 text-sm space-y-2 mb-4">
-                <li>• <span className="text-red-400 font-semibold">BAD</span> → AI detects issues → Decides <span className="text-red-400">ROLLBACK</span></li>
-                <li>• <span className="text-green-400 font-semibold">GOOD</span> → AI sees healthy metrics → Decides <span className="text-green-400">CONTINUE</span></li>
-                <li>• Dashboard updates automatically in ~3 seconds</li>
-                <li>• Check Kestra executions: <a href="http://localhost:8080/ui/executions" target="_blank" className="text-blue-400 hover:underline">localhost:8080/ui/executions</a></li>
-              </ul>
-              
-              <details className="mt-4">
-                <summary className="text-gray-500 text-xs cursor-pointer hover:text-gray-400">Or use curl command...</summary>
-                <pre className="bg-black/30 p-4 rounded text-xs text-green-400 overflow-x-auto mt-2">
-{`curl -X POST http://localhost:8080/api/v1/executions/webhook/ai.devops.commander/devops-loop/deployment-webhook \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "deploymentId": "deploy-001",
-    "service": "payment-service",
-    "environment": "production",
-    "version": "v1.0.0"
-  }'`}
-                </pre>
-              </details>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const current = data[selectedIndex]
-  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0e14] via-[#0f1419] to-[#0a0e14] text-white">
-      {/* Top Bar */}
-      <div className="bg-[#1a1f2e]/80 backdrop-blur-sm border-b border-gray-800/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <span className="text-white font-bold">AI</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">AI DevOps Commander</h1>
-                <p className="text-xs text-gray-400">Intelligent deployment monitoring & automated response</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => triggerDeployment('bad')}
-                disabled={triggering}
-                className="px-4 py-2 bg-red-600/80 hover:bg-red-600 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                🔴 Trigger BAD
-              </button>
-              <button
-                onClick={() => triggerDeployment('good')}
-                disabled={triggering}
-                className="px-4 py-2 bg-green-600/80 hover:bg-green-600 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                🟢 Trigger GOOD
-              </button>
-              <div className="flex items-center gap-3 bg-green-500/10 px-3 py-1.5 rounded-full border border-green-500/20">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                <span className="text-xs font-medium text-green-400">Live Monitoring</span>
-              </div>
-            </div>
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-sm font-semibold text-gray-900">AI DevOps Commander</h1>
+            <p className="text-xs text-gray-500">ai.devops.commander / ai-devops-workflow</p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => trigger('good')}
+            className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 rounded hover:bg-gray-50"
+          >
+            Simulate Healthy
+          </button>
+          <button
+            onClick={() => trigger('bad')}
+            className="px-3 py-1.5 text-xs font-medium bg-white border border-gray-300 rounded hover:bg-gray-50"
+          >
+            Simulate Unhealthy
+          </button>
+        </div>
+      </header>
+
+      {/* Stats Bar */}
+      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-6 text-xs">
+        <div className="flex items-center gap-1.5">
+          <span className="text-gray-500">Executions:</span>
+          <span className="font-medium text-gray-900">{stats.total}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+          <span className="text-gray-500">Continue:</span>
+          <span className="font-medium text-green-700">{stats.healthy}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+          <span className="text-gray-500">Rollback:</span>
+          <span className="font-medium text-red-700">{stats.rollback}</span>
+        </div>
+        <button onClick={fetchDeployments} className="ml-auto text-gray-400 hover:text-gray-600">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        
-        <div className="grid grid-cols-12 gap-6">
-          
-          {/* Left Sidebar */}
-          <div className="col-span-3">
-            <div className="bg-[#1a1f2e]/50 backdrop-blur-sm rounded-xl border border-gray-800/50 p-5 shadow-2xl">
-              <div className="flex items-center gap-2 mb-5">
-                <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full"></div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Recent Deployments</h3>
-              </div>
-              <div className="space-y-2">
-                {data.map((dep, index) => (
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-72 bg-white border-r border-gray-200 overflow-y-auto">
+          {loading ? (
+            <div className="p-4 text-center text-sm text-gray-500">Loading...</div>
+          ) : deployments.length === 0 ? (
+            <div className="p-4 text-center text-sm text-gray-500">No executions yet</div>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {deployments.map((d) => (
+                <li key={d.id}>
                   <button
-                    key={dep.deployment_id || dep.id}
-                    onClick={() => setSelectedIndex(index)}
-                    className={`w-full text-left px-4 py-3.5 rounded-lg transition-all duration-200 group ${
-                      index === selectedIndex
-                        ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/50 shadow-lg shadow-blue-500/10'
-                        : 'hover:bg-gray-800/40 border border-transparent hover:border-gray-700/50'
+                    onClick={() => setSelected(d)}
+                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 ${
+                      selected?.id === d.id ? 'bg-indigo-50 border-l-2 border-indigo-600' : ''
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 mb-1.5">
-                      <StatusDot status={dep.status} />
-                      <span className={`text-sm font-semibold truncate transition-colors ${
-                        index === selectedIndex ? 'text-white' : 'text-gray-300 group-hover:text-white'
-                      }`}>{dep.service}</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-mono font-medium text-gray-900 truncate">
+                        {d.deployment_id}
+                      </span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                        d.ai_decision === 'CONTINUE' 
+                          ? 'bg-green-100 text-green-700' 
+                          : d.ai_decision === 'ROLLBACK'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {d.ai_decision}
+                      </span>
                     </div>
-                    <div className="text-xs text-gray-500 font-mono ml-4">{dep.version}</div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{d.service}</span>
+                      <span>{d.version}</span>
+                    </div>
                   </button>
-                ))}
-              </div>
-            </div>
-          </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
 
-          {/* Main Content */}
-          <div className="col-span-9 space-y-6">
-            
-            {/* Header */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 rounded-xl border border-blue-500/30 p-8 shadow-2xl">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 animate-pulse"></div>
-              <div className="relative">
+        {/* Detail Panel */}
+        <main className="flex-1 overflow-y-auto">
+          {selected ? (
+            <div>
+              {/* Detail Header */}
+              <div className="bg-white border-b border-gray-200 px-6 py-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="flex items-center gap-4 mb-3">
-                      <h2 className="text-3xl font-bold text-white tracking-tight">{current.service}</h2>
-                      <StatusBadge status={current.status} />
+                    <h2 className="text-lg font-semibold text-gray-900">{selected.deployment_id}</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {selected.service} · {selected.version} · {selected.environment}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-2xl font-bold ${
+                      selected.ai_decision === 'CONTINUE' ? 'text-green-600' : 
+                      selected.ai_decision === 'ROLLBACK' ? 'text-red-600' : 'text-gray-600'
+                    }`}>
+                      {selected.ai_decision}
                     </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="flex items-center gap-2 bg-gray-900/40 px-3 py-1.5 rounded-lg border border-gray-700/50">
-                        <span className="text-gray-400">Version:</span>
-                        <span className="font-mono font-semibold text-blue-400">{current.version}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-400">
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
-                        </svg>
-                        <span>{new Date(current.timestamp).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}</span>
-                      </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {(selected.ai_confidence * 100).toFixed(0)}% confidence
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Tabs */}
+              <div className="bg-white border-b border-gray-200">
+                <nav className="flex px-6">
+                  {(['summary', 'metrics', 'logs'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTab(t)}
+                      className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px ${
+                        tab === t
+                          ? 'border-indigo-600 text-indigo-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6">
+                {tab === 'summary' && (
+                  <div className="space-y-6">
+                    {/* Health Score */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-gray-900">Health Score</h3>
+                        <span className={`text-3xl font-bold ${
+                          selected.health_score >= 70 ? 'text-green-600' :
+                          selected.health_score >= 50 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {selected.health_score}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            selected.health_score >= 70 ? 'bg-green-500' :
+                            selected.health_score >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                          }`}
+                          style={{ width: `${selected.health_score}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* AI Analysis */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-gray-900 mb-2">AI Analysis</h3>
+                      <p className="text-sm text-gray-600 mb-3">{selected.ai_summary}</p>
+                      <p className="text-sm text-gray-500">{selected.ai_reasoning}</p>
+                    </div>
+
+                    {/* Execution Info */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-gray-900 mb-3">Execution Details</h3>
+                      <dl className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <dt className="text-gray-500">Execution ID</dt>
+                          <dd className="font-mono text-gray-900 mt-0.5">{selected.id}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">Timestamp</dt>
+                          <dd className="text-gray-900 mt-0.5">{formatTime(selected.timestamp)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">Status</dt>
+                          <dd className="text-gray-900 mt-0.5 capitalize">{selected.status.replace('_', ' ')}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-gray-500">Environment</dt>
+                          <dd className="text-gray-900 mt-0.5">{selected.environment}</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                )}
+
+                {tab === 'metrics' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="text-sm text-gray-500 mb-1">Error Rate</div>
+                        <div className={`text-2xl font-bold ${
+                          parseFloat(selected.metrics.error_rate) < 10 ? 'text-green-600' :
+                          parseFloat(selected.metrics.error_rate) < 20 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {selected.metrics.error_rate}
+                        </div>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="text-sm text-gray-500 mb-1">Memory Usage</div>
+                        <div className={`text-2xl font-bold ${
+                          parseFloat(selected.metrics.memory_usage) < 70 ? 'text-green-600' :
+                          parseFloat(selected.metrics.memory_usage) < 85 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {selected.metrics.memory_usage}
+                        </div>
+                      </div>
+                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="text-sm text-gray-500 mb-1">Response Time</div>
+                        <div className={`text-2xl font-bold ${
+                          parseFloat(selected.metrics.response_time) < 1000 ? 'text-green-600' :
+                          parseFloat(selected.metrics.response_time) < 2000 ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {selected.metrics.response_time}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Metric</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Threshold</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          <tr>
+                            <td className="px-4 py-2 font-medium text-gray-900">Error Rate</td>
+                            <td className="px-4 py-2 text-gray-600">{selected.metrics.error_rate}</td>
+                            <td className="px-4 py-2 text-gray-500">&lt; 15%</td>
+                            <td className="px-4 py-2">
+                              {parseFloat(selected.metrics.error_rate) < 15 
+                                ? <span className="text-green-600">OK</span>
+                                : <span className="text-red-600">CRITICAL</span>
+                              }
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-2 font-medium text-gray-900">Memory Usage</td>
+                            <td className="px-4 py-2 text-gray-600">{selected.metrics.memory_usage}</td>
+                            <td className="px-4 py-2 text-gray-500">&lt; 85%</td>
+                            <td className="px-4 py-2">
+                              {parseFloat(selected.metrics.memory_usage) < 85
+                                ? <span className="text-green-600">OK</span>
+                                : <span className="text-red-600">WARNING</span>
+                              }
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="px-4 py-2 font-medium text-gray-900">Response Time</td>
+                            <td className="px-4 py-2 text-gray-600">{selected.metrics.response_time}</td>
+                            <td className="px-4 py-2 text-gray-500">&lt; 2000ms</td>
+                            <td className="px-4 py-2">
+                              {parseFloat(selected.metrics.response_time) < 2000
+                                ? <span className="text-green-600">OK</span>
+                                : <span className="text-red-600">SLA BREACH</span>
+                              }
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {tab === 'logs' && (
+                  <div className="bg-gray-900 rounded-lg p-4 font-mono text-xs overflow-x-auto">
+                    {selected.logs ? (
+                      <pre className="text-gray-300 whitespace-pre-wrap">{selected.logs}</pre>
+                    ) : (
+                      <p className="text-gray-500">No logs available</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-
-            {/* AI Analysis */}
-            <div className="bg-[#1a1f2e]/50 backdrop-blur-sm rounded-xl border border-gray-800/50 p-7 shadow-2xl">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 012 0v4a1 1 0 11-2 0V9zm1-4a1 1 0 100 2 1 1 0 000-2z"/>
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-white">AI Analysis</h3>
-              </div>
-              <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-5 mb-6">
-                <p className="text-gray-200 leading-relaxed text-base">
-                  {current.ai_summary}
-                </p>
-              </div>
-              
-              <div className="border-t border-gray-800/50 pt-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-xs uppercase tracking-wider text-gray-500 font-bold">AI Decision</span>
-                  <DecisionBadge decision={current.ai_decision} />
-                </div>
-                <div className="bg-gray-900/40 border border-gray-700/50 rounded-lg p-4">
-                  <p className="text-sm text-gray-300 leading-relaxed">
-                    {current.ai_reasoning}
-                  </p>
-                </div>
-              </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-500 text-sm">
+              Select an execution to view details
             </div>
-
-            {/* Action & Outcome */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-[#1a1f2e]/50 backdrop-blur-sm rounded-xl border border-gray-800/50 p-6 shadow-xl hover:shadow-2xl hover:border-gray-700/50 transition-all duration-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Action Taken</h3>
-                </div>
-                <p className="text-white text-base leading-relaxed">
-                  {current.action_taken}
-                </p>
-              </div>
-              
-              <div className="bg-[#1a1f2e]/50 backdrop-blur-sm rounded-xl border border-gray-800/50 p-6 shadow-xl hover:shadow-2xl hover:border-gray-700/50 transition-all duration-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Outcome</h3>
-                </div>
-                <p className="text-white text-base leading-relaxed">
-                  {current.outcome}
-                </p>
-              </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="bg-[#1a1f2e]/50 backdrop-blur-sm rounded-xl border border-gray-800/50 p-7 shadow-2xl">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/20">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-white">Event Timeline</h3>
-              </div>
-              <div className="space-y-5 relative before:absolute before:left-4 before:top-8 before:bottom-8 before:w-px before:bg-gradient-to-b before:from-blue-500/20 before:via-purple-500/20 before:to-transparent">
-                <TimelineEvent 
-                  time={new Date(current.timestamp).toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit'
-                  })}
-                  label="Deployment triggered"
-                  detail={current.commit_message}
-                />
-                <TimelineEvent 
-                  time={addSeconds(current.timestamp, 45)}
-                  label="Logs collected and analyzed"
-                />
-                <TimelineEvent 
-                  time={addSeconds(current.timestamp, 90)}
-                  label="AI decision completed"
-                  detail={`Result: ${current.ai_decision}`}
-                />
-                <TimelineEvent 
-                  time={new Date(current.action_timestamp).toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit'
-                  })}
-                  label="Action executed"
-                />
-              </div>
-            </div>
-
-          </div>
-        </div>
-
+          )}
+        </main>
       </div>
     </div>
   )
-}
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === 'healthy') {
-    return (
-      <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-400 border border-green-500/40 shadow-lg shadow-green-500/10">
-        <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></span>
-        Healthy
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold bg-gradient-to-r from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/40 shadow-lg shadow-red-500/10">
-      <span className="w-2 h-2 bg-red-400 rounded-full shadow-lg shadow-red-400/50"></span>
-      Rolled Back
-    </span>
-  )
-}
-
-function DecisionBadge({ decision }: { decision: string }) {
-  if (decision === 'ROLLBACK') {
-    return (
-      <span className="inline-flex items-center px-4 py-1.5 rounded-lg text-sm font-black bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-500/30 uppercase tracking-wider">
-        ⚠ ROLLBACK
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center px-4 py-1.5 rounded-lg text-sm font-black bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/30 uppercase tracking-wider">
-      ✓ CONTINUE
-    </span>
-  )
-}
-
-function StatusDot({ status }: { status: string }) {
-  if (status === 'healthy') {
-    return <div className="w-2 h-2 bg-green-400 rounded-full shadow-lg shadow-green-400/50"></div>
-  }
-  return <div className="w-2 h-2 bg-red-400 rounded-full shadow-lg shadow-red-400/50"></div>
-}
-
-function TimelineEvent({ time, label, detail }: { 
-  time: string; 
-  label: string; 
-  detail?: string;
-}) {
-  return (
-    <div className="flex items-start gap-4 relative">
-      <div className="flex-shrink-0 relative z-10">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/30 ring-4 ring-[#1a1f2e]">
-          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-          </svg>
-        </div>
-      </div>
-      <div className="flex-1 pt-1">
-        <div className="flex items-baseline gap-3 mb-1">
-          <span className="text-base font-semibold text-white">{label}</span>
-          <span className="text-xs text-gray-500 font-mono bg-gray-900/40 px-2 py-0.5 rounded border border-gray-700/50">{time}</span>
-        </div>
-        {detail && (
-          <div className="text-sm text-gray-400 mt-2 bg-gray-900/20 px-3 py-2 rounded-lg border border-gray-800/50">
-            {detail}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function addSeconds(timestamp: string, seconds: number): string {
-  const date = new Date(timestamp)
-  date.setSeconds(date.getSeconds() + seconds)
-  return date.toLocaleTimeString('en-US', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    second: '2-digit'
-  })
 }

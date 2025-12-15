@@ -9,7 +9,11 @@ services:
       - "8080:8080"
       - "8081:8081"
     environment:
+      MICRONAUT_SECURITY_ENABLED: "false"
       KESTRA_CONFIGURATION: |
+        micronaut:
+          security:
+            enabled: false
         kestra:
           server:
             basic-auth:
@@ -22,7 +26,6 @@ services:
             type: local
             local:
               base-path: "/app/storage"
-        
         datasources:
           postgres:
             url: jdbc:postgresql://postgres:5432/kestra
@@ -33,8 +36,10 @@ services:
       - kestra-data:/app/storage
       - ./workflows:/app/flows
       - ../mock-data:/app/mock-data:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - kestra-network
 

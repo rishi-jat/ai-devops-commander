@@ -1,79 +1,163 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const KESTRA_API = process.env.KESTRA_API_URL || 'http://localhost:8080/api/v1'
+const KESTRA_USER = process.env.KESTRA_USER || 'admin@example.com'
+const KESTRA_PASS = process.env.KESTRA_PASS || 'Admin123!'
+
+// Demo data for when Kestra is not available (e.g., Vercel deployment)
+const DEMO_DATA = [
+  {
+    id: 'demo-exec-001',
+    deployment_id: 'prod-api-v2.1.0',
+    service: 'api-gateway',
+    version: 'v2.1.0',
+    environment: 'production',
+    timestamp: new Date(Date.now() - 300000).toISOString(),
+    status: 'healthy',
+    ai_summary: 'Deployment healthy. All metrics within acceptable ranges.',
+    ai_decision: 'CONTINUE',
+    ai_confidence: 0.94,
+    ai_reasoning: 'Error rate 2.3% is below threshold. Memory usage 54% is optimal. Response time 145ms meets SLA.',
+    health_score: 87,
+    metrics: { error_rate: '2.3%', memory_usage: '54%', response_time: '145ms' },
+    logs: 'INFO: Deployment started\nINFO: Health check passed\nINFO: Metrics collected\nINFO: AI Decision: CONTINUE'
+  },
+  {
+    id: 'demo-exec-002',
+    deployment_id: 'prod-payment-v1.8.3',
+    service: 'payment-service',
+    version: 'v1.8.3',
+    environment: 'production',
+    timestamp: new Date(Date.now() - 600000).toISOString(),
+    status: 'rolled_back',
+    ai_summary: 'Critical: High error rate detected. Automatic rollback initiated.',
+    ai_decision: 'ROLLBACK',
+    ai_confidence: 0.91,
+    ai_reasoning: 'Error rate 23.5% exceeds 15% threshold. Memory usage 89% is critical. Immediate rollback required.',
+    health_score: 32,
+    metrics: { error_rate: '23.5%', memory_usage: '89%', response_time: '3200ms' },
+    logs: 'INFO: Deployment started\nWARN: High error rate detected\nERROR: Memory threshold exceeded\nINFO: AI Decision: ROLLBACK\nINFO: Rollback completed'
+  },
+  {
+    id: 'demo-exec-003',
+    deployment_id: 'prod-auth-v3.0.1',
+    service: 'auth-service',
+    version: 'v3.0.1',
+    environment: 'production',
+    timestamp: new Date(Date.now() - 900000).toISOString(),
+    status: 'healthy',
+    ai_summary: 'Deployment stable. Performance metrics excellent.',
+    ai_decision: 'CONTINUE',
+    ai_confidence: 0.97,
+    ai_reasoning: 'All metrics nominal. Error rate 0.8%, Memory 42%, Response time 98ms. Excellent deployment.',
+    health_score: 95,
+    metrics: { error_rate: '0.8%', memory_usage: '42%', response_time: '98ms' },
+    logs: 'INFO: Deployment started\nINFO: All checks passed\nINFO: AI Decision: CONTINUE'
+  }
+]
 
 export async function GET(request: NextRequest) {
   try {
-    // Fetch REAL executions from Kestra (local instance, no auth)
-    const response = await fetch(`${KESTRA_API}/executions?size=50`, {
+    const auth = Buffer.from(`${KESTRA_USER}:${KESTRA_PASS}`).toString('base64')
+    
+    // Fetch REAL executions from Kestra
+    const response = await fetch(`${KESTRA_API}/executions?namespace=ai.devops.commander&flowId=ai-devops-workflow&size=50`, {
       cache: 'no-store',
       headers: {
+        'Authorization': `Basic ${auth}`,
         'Accept': 'application/json'
       }
     })
     
-    // If Kestra not responding or no executions yet, return empty array
     if (!response.ok) {
-      console.log(`⚠️  Kestra API status: ${response.status}`)
+      console.log(`Kestra API status: ${response.status}`)
       return NextResponse.json([])
     }
     
     const data = await response.json()
     
-    // If no results yet, return empty
     if (!data.results || data.results.length === 0) {
       return NextResponse.json([])
     }
     
-    // Transform Kestra executions into deployment format for dashboard
-    const deployments = (data.results || [])
-      .filter((execution: any) => {
-        // Only show our devops-loop executions
-        return execution.namespace === 'ai.devops.commander' && 
-               execution.flowId === 'devops-loop'
-      })
-      .map((execution: any) => {
+    // Process each execution - fetch logs separately (Kestra stores logs in separate endpoint)
+    const deployments = await Promise.all(
+      data.results.map(async (execution: any) => {
         const inputs = execution.inputs || {}
-        const outputs = execution.outputs || {}
         const state = execution.state || {}
         
-        // Parse decision data from outputs
-        let aiDecision = 'ANALYZING'
-        let aiSummary = 'AI analysis in progress...'
-        let aiReasoning = 'Waiting for AI decision...'
-        let aiConfidence = 0.0
-        let healthScore = 50
-        let errorRate = '0%'
-        let memoryUsage = '0%'
-        let responseTime = '0ms'
+        // Fetch logs for this execution from /api/v1/logs/{executionId}
+        let logs = ''
+        let result: any = {}
         
-        // Try to extract from outputs
-        if (outputs.ai_decision) {
-          aiDecision = outputs.ai_decision
-        }
-        if (outputs.ai_summary) {
-          aiSummary = outputs.ai_summary
-        }
-        if (outputs.ai_reasoning) {
-          aiReasoning = outputs.ai_reasoning
-        }
-        if (outputs.ai_confidence) {
-          aiConfidence = parseFloat(outputs.ai_confidence) || 0.85
-        }
-        if (outputs.health_score) {
-          healthScore = parseInt(outputs.health_score) || 50
-        }
-        if (outputs.error_rate) {
-          errorRate = outputs.error_rate
-        }
-        if (outputs.memory_usage) {
-          memoryUsage = outputs.memory_usage
-        }
-        if (outputs.response_time) {
-          responseTime = outputs.response_time
+        try {
+          const logsResponse = await fetch(`${KESTRA_API}/logs/${execution.id}`, {
+            cache: 'no-store',
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Accept': 'application/json'
+            }
+          })
+          
+          if (logsResponse.ok) {
+            const logsData = await logsResponse.json()
+            
+            // Extract all log messages
+            const logMessages = logsData
+              .filter((l: any) => l.level === 'INFO')
+              .map((l: any) => l.message)
+            
+            logs = logMessages.join('\n')
+            
+            // Parse the key fields directly from log lines
+            for (const line of logMessages) {
+              if (line.includes('"ai_decision":')) {
+                const match = line.match(/"ai_decision":\s*"([^"]+)"/)
+                if (match) result.ai_decision = match[1]
+              }
+              if (line.includes('"ai_confidence":')) {
+                const match = line.match(/"ai_confidence":\s*([\d.]+)/)
+                if (match) result.ai_confidence = parseFloat(match[1])
+              }
+              if (line.includes('"ai_summary":')) {
+                const match = line.match(/"ai_summary":\s*"([^"]+)"/)
+                if (match) result.ai_summary = match[1]
+              }
+              if (line.includes('"ai_reasoning":')) {
+                const match = line.match(/"ai_reasoning":\s*"([^"]+)"/)
+                if (match) result.ai_reasoning = match[1]
+              }
+              if (line.includes('"health_score":') && !line.includes('state')) {
+                const match = line.match(/"health_score":\s*(\d+)/)
+                if (match) result.health_score = parseInt(match[1])
+              }
+              if (line.includes('"error_rate":') && line.includes('%')) {
+                const match = line.match(/"error_rate":\s*"([^"]+)"/)
+                if (match) result.error_rate = match[1]
+              }
+              if (line.includes('"memory_usage":') && line.includes('%')) {
+                const match = line.match(/"memory_usage":\s*"([^"]+)"/)
+                if (match) result.memory_usage = match[1]
+              }
+              if (line.includes('"response_time":') && line.includes('ms')) {
+                const match = line.match(/"response_time":\s*"([^"]+)"/)
+                if (match) result.response_time = match[1]
+              }
+            }
+          }
+        } catch (e) {
+          console.log('Failed to fetch logs:', e)
         }
         
-        // Determine status from execution state and AI decision
+        const aiDecision = result.ai_decision || 'ANALYZING'
+        const aiSummary = result.ai_summary || 'AI analysis in progress...'
+        const aiReasoning = result.ai_reasoning || 'Waiting for AI decision...'
+        const aiConfidence = result.ai_confidence || 0
+        const healthScore = result.health_score || 50
+        const errorRate = result.error_rate || '0%'
+        const memoryUsage = result.memory_usage || '0%'
+        const responseTime = result.response_time || '0ms'
+        
         let status = 'deploying'
         if (state.current === 'SUCCESS') {
           status = aiDecision === 'ROLLBACK' ? 'rolled_back' : 'healthy'
@@ -84,8 +168,8 @@ export async function GET(request: NextRequest) {
         }
         
         return {
-          id: inputs.deploymentId || execution.id,
-          deployment_id: inputs.deploymentId || execution.id,
+          id: execution.id,
+          deployment_id: inputs.deploymentId || execution.id.substring(0, 12),
           service: inputs.service || 'unknown-service',
           version: inputs.version || '1.0.0',
           environment: inputs.environment || 'production',
@@ -95,50 +179,22 @@ export async function GET(request: NextRequest) {
           ai_decision: aiDecision,
           ai_confidence: aiConfidence,
           ai_reasoning: aiReasoning,
-          action_taken: aiDecision === 'ROLLBACK' ? 'Automatic rollback initiated' : 'Continue monitoring',
-          outcome: state.current === 'SUCCESS' 
-            ? (aiDecision === 'ROLLBACK' ? 'Service restored successfully' : 'Deployment stable and healthy')
-            : state.current === 'RUNNING'
-            ? 'Analysis in progress...'
-            : 'Execution failed',
           health_score: healthScore,
           metrics: {
             error_rate: errorRate,
             memory_usage: memoryUsage,
             response_time: responseTime
           },
-          timeline: [
-            {
-              time: state.startDate || new Date().toISOString(),
-              event: 'Deployment triggered',
-              description: inputs.description || 'Deployment initiated'
-            },
-            state.histories && state.histories.length > 0 && {
-              time: state.histories[0].date,
-              event: 'Logs collected and analyzed',
-              description: 'AI analysis running'
-            },
-            state.current === 'SUCCESS' && {
-              time: state.endDate || new Date().toISOString(),
-              event: 'AI decision completed',
-              description: `Result: ${aiDecision}`
-            },
-            state.current === 'SUCCESS' && {
-              time: new Date(new Date(state.endDate || Date.now()).getTime() + 120000).toISOString(),
-              event: 'Action executed',
-              description: aiDecision === 'ROLLBACK' ? 'Rollback completed' : 'Monitoring continues'
-            }
-          ].filter(Boolean),
-          commit_message: inputs.description || 'Deployment triggered',
-          action_timestamp: state.endDate || state.startDate || new Date().toISOString()
+          logs: logs || undefined
         }
       })
+    )
     
     return NextResponse.json(deployments)
   } catch (error) {
-    console.error('❌ Failed to fetch from Kestra:', error)
-    // Return empty array instead of error to keep UI working
-    return NextResponse.json([])
+    console.error('Failed to fetch from Kestra:', error)
+    // Return demo data when Kestra is not available
+    return NextResponse.json(DEMO_DATA)
   }
 }
 
