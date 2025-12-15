@@ -4,6 +4,7 @@
 
 [![Built with Cline](https://img.shields.io/badge/Built%20with-Cline-blue)](https://github.com/cline/cline)
 [![Orchestrated by Kestra](https://img.shields.io/badge/Orchestrated%20by-Kestra-orange)](https://kestra.io)
+[![Powered by Together AI](https://img.shields.io/badge/Powered%20by-Together%20AI-00C7B7)](https://together.ai)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://vercel.com)
 [![Powered by Oumi](https://img.shields.io/badge/Powered%20by-Oumi-green)](https://oumi.ai)
 [![Reviewed by CodeRabbit](https://img.shields.io/badge/Reviewed%20by-CodeRabbit-purple)](https://coderabbit.ai)
@@ -85,8 +86,9 @@ AI DevOps Commander
 1. Code creation          → Cline (autonomous code fixes)
 2. Code review            → CodeRabbit (PR hygiene)
 3. Orchestration + Brain  → Kestra (workflows + AI decisions)
-4. Learning               → Oumi (reinforcement learning policy)
-5. Visibility             → Vercel (dashboard UI)
+4. AI Inference           → Together AI (LLM for decision making)
+5. Learning               → Oumi (reinforcement learning policy)
+6. Visibility             → Vercel (dashboard UI)
 ```
 
 ### Workflow overview
@@ -97,8 +99,8 @@ At a high level, the system reacts to a deployment event, gathers runtime signal
 graph TB
     A[Code Deployed] --> B[Kestra Workflow Triggered]
     B --> C[Collect Logs & Metrics]
-    C --> D[Kestra AI Agent Summarizes]
-    D --> E{Oumi RL Model Decides}
+    C --> D[Together AI Analyzes]
+    D --> E{AI Decision Engine}
     E -->|Healthy| F[Continue Monitoring]
     E -->|Unhealthy| G[Auto Rollback/Scale]
     G --> H[Record Outcome]
@@ -118,14 +120,21 @@ All data used here is simulated to keep the demo deterministic.
 
 - Listens for deployment events
 - Gathers logs from different sources automatically
-- Uses Kestra’s AI agent to summarize the data
+- Orchestrates the entire AI decision pipeline
 - Avoids manual log inspection
 
-### Decision making (Oumi RL)
+### AI Decision Making (Together AI)
 
-- Uses a trained policy to decide whether to deploy or rollback
-- Learns from previous outcomes to improve decisions
-- Aims to reduce downtime and error rates
+- Analyzes deployment metrics using LLM inference
+- Provides CONTINUE or ROLLBACK decisions with confidence scores
+- Explains reasoning behind each decision
+- Processes error rates, memory usage, CPU, and response times
+
+### Reinforcement Learning (Oumi RL)
+
+- Collects training data from each deployment decision
+- Uses outcomes to improve future decisions
+- Aims to reduce downtime and error rates over time
 
 ### Automated remediation suggestions (Cline)
 
@@ -160,13 +169,14 @@ This demo illustrates an end-to-end incident response workflow with automated ob
 
 ## Tech stack
 
-| Component       | Tool       | Purpose                         |
-|-----------------|------------|--------------------------------|
-| Orchestration   | Kestra     | Workflow engine and AI summarization |
-| Code automation | Cline      | Autonomous code generation      |
-| Code quality    | CodeRabbit | PR reviews and code hygiene     |
-| Learning        | Oumi       | Reinforcement learning training |
-| Frontend        | Vercel     | Dashboard hosting and UI        |
+| Component       | Tool        | Purpose                              |
+|-----------------|-------------|--------------------------------------|
+| Orchestration   | Kestra      | Workflow engine and orchestration    |
+| AI Inference    | Together AI | LLM for intelligent decision making  |
+| Code automation | Cline       | Autonomous code generation           |
+| Code quality    | CodeRabbit  | PR reviews and code hygiene          |
+| Learning        | Oumi        | Reinforcement learning training      |
+| Frontend        | Vercel      | Dashboard hosting and UI             |
 
 ---
 
@@ -175,16 +185,15 @@ This demo illustrates an end-to-end incident response workflow with automated ob
 ```
 ai-devops-commander/
 ├── README.md                           # This file
-├── ARCHITECTURE.md                     # Detailed system design
-├── QUICKSTART.md                       # Fast setup guide
-├── CONTRIBUTING.md                     # How to contribute
-├── DEPLOYMENT.md                       # Production deployment
+├── VIDEO_SCRIPT.md                     # Hackathon video script
+├── LICENSE                             # MIT License
 ├── setup.sh                            # One-command setup script
 ├── kestra/
 │   ├── docker-compose.yml              # Kestra + PostgreSQL
 │   ├── README.md                       # Kestra-specific docs
 │   └── workflows/
-│       └── devops-loop.yml             # Main AI workflow (429 lines)
+│       ├── ai-devops-workflow.yml      # Main AI workflow (demo)
+│       └── devops-loop.yml             # Extended workflow
 ├── dashboard/
 │   ├── app/
 │   │   ├── api/
@@ -262,17 +271,21 @@ open http://localhost:8080
 
 ## Demo video
 
-[Link to demo video showing the autonomous loop]
+🎬 **Watch the demo**: [Coming Soon]
 
-The video shows the deployment trigger, log collection, AI summarization, decision making, automatic action, and dashboard visualization.
+The video demonstrates:
+- Kestra workflow execution
+- Together AI analyzing deployment metrics
+- AI making CONTINUE/ROLLBACK decisions
+- Real-time dashboard visualization
 
 ---
 
 ## Contributing
 
-This project is open source and follows basic practices like code review via CodeRabbit and documentation. Contributions are welcome.
+This project is open source and follows basic practices like code review via CodeRabbit and documentation. Contributions are welcome!
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Feel free to open issues or submit pull requests.
 
 ---
 
@@ -286,11 +299,12 @@ MIT License - see [LICENSE](LICENSE)
 
 This project uses:
 
-- [Cline](https://github.com/cline/cline) for autonomous coding  
 - [Kestra](https://kestra.io) for workflow orchestration  
-- [Vercel](https://vercel.com) for dashboard hosting  
+- [Together AI](https://together.ai) for LLM inference  
 - [Oumi](https://oumi.ai) for reinforcement learning  
+- [Cline](https://github.com/cline/cline) for autonomous coding  
 - [CodeRabbit](https://coderabbit.ai) for AI code review  
+- [Vercel](https://vercel.com) for dashboard hosting  
 
 ---
 
