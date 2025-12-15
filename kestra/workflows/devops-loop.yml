@@ -52,8 +52,9 @@ tasks:
     
   - id: ai_decision
     type: io.kestra.plugin.scripts.python.Script
-    docker:
-      image: python:3.11-slim
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+    containerImage: python:3.11-slim
     beforeCommands:
       - pip install requests
     script: |
@@ -128,8 +129,9 @@ tasks:
       - id: decision_data
   - id: collect_training_data
     type: io.kestra.plugin.scripts.python.Script
-    docker:
-      image: python:3.11-slim
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+    containerImage: python:3.11-slim
     script: |
       import json
       

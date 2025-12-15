@@ -31,8 +31,8 @@ inputs:
 tasks:
   - id: deployment_analysis
     type: io.kestra.plugin.scripts.python.Script
-    docker:
-      image: python:3.11-slim
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
     script: |
       import json
       import random
