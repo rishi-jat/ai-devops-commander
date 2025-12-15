@@ -30,6 +30,7 @@ export default function DeploymentDashboard() {
   const [filter, setFilter] = useState<'all' | 'continue' | 'rollback'>('all')
   const [showClearModal, setShowClearModal] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
+  const [showSidebar, setShowSidebar] = useState(false)
 
   const fetchDeployments = useCallback(async () => {
     try {
@@ -105,24 +106,35 @@ export default function DeploymentDashboard() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="h-14 border-b border-gray-200 px-4 flex items-center justify-between bg-gray-50">
-        <div className="flex items-center gap-3">
-          <svg className="w-6 h-6 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <header className="h-14 border-b border-gray-200 px-3 sm:px-4 flex items-center justify-between bg-gray-50">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setShowSidebar(!showSidebar)}
+            className="lg:hidden p-1.5 -ml-1 rounded-md hover:bg-gray-200"
+            title="Toggle menu"
+            aria-label="Toggle menu"
+          >
+            <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <path d="M9 9h6v6H9z" />
             <path d="M9 3v6M15 3v6M9 15v6M15 15v6M3 9h6M3 15h6M15 9h6M15 15h6" />
           </svg>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-900">AI DevOps Commander</span>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-600 text-sm">ai-devops-workflow</span>
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+            <span className="font-semibold text-gray-900 text-sm sm:text-base truncate">AI DevOps Commander</span>
+            <span className="text-gray-400 hidden sm:inline">/</span>
+            <span className="text-gray-600 text-xs sm:text-sm hidden sm:inline">ai-devops-workflow</span>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`p-2 rounded-md border text-sm ${autoRefresh ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
+            className={`p-1.5 sm:p-2 rounded-md border text-sm ${autoRefresh ? 'bg-green-50 border-green-200 text-green-700' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
             title={autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -131,22 +143,36 @@ export default function DeploymentDashboard() {
           </button>
           <button
             onClick={() => trigger('good')}
-            className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+            className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
           >
-            + Healthy
+            <span className="hidden sm:inline">+ </span>Healthy
           </button>
           <button
             onClick={() => trigger('bad')}
-            className="px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+            className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
           >
-            + Faulty
+            <span className="hidden sm:inline">+ </span>Faulty
           </button>
         </div>
       </header>
 
-      <div className="flex h-[calc(100vh-56px)]">
+      <div className="flex h-[calc(100vh-56px)] relative">
+        {/* Mobile overlay */}
+        {showSidebar && (
+          <div 
+            className="fixed inset-0 bg-black/30 z-20 lg:hidden"
+            onClick={() => setShowSidebar(false)}
+          />
+        )}
+        
         {/* Sidebar */}
-        <aside className="w-80 border-r border-gray-200 flex flex-col bg-gray-50/50">
+        <aside className={`
+          fixed lg:relative inset-y-0 left-0 z-30 lg:z-0
+          w-72 sm:w-80 border-r border-gray-200 flex flex-col bg-white lg:bg-gray-50/50
+          transform transition-transform duration-200 ease-in-out
+          ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          top-14 lg:top-0 h-[calc(100vh-56px)] lg:h-full
+        `}>
           {/* Stats */}
           <div className="p-3 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between text-xs">
@@ -198,7 +224,7 @@ export default function DeploymentDashboard() {
                     className={`group relative ${selected?.id === d.id ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                   >
                     <button
-                      onClick={() => setSelected(d)}
+                      onClick={() => { setSelected(d); setShowSidebar(false) }}
                       className="w-full text-left px-3 py-2.5"
                     >
                       <div className="flex items-center justify-between">
@@ -245,18 +271,18 @@ export default function DeploymentDashboard() {
         </aside>
 
         {/* Main Panel */}
-        <main className="flex-1 overflow-y-auto bg-white">
+        <main className="flex-1 overflow-y-auto bg-white lg:ml-0">
           {selected ? (
-            <div className="max-w-4xl mx-auto p-6">
+            <div className="max-w-4xl mx-auto p-4 sm:p-6">
               {/* Header */}
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">{selected.deployment_id}</h1>
-                  <p className="text-sm text-gray-500 mt-1">
+              <div className="flex items-start justify-between mb-4 sm:mb-6 gap-3">
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">{selected.deployment_id}</h1>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">
                     {selected.service} · {selected.version} · {selected.environment}
                   </p>
                 </div>
-                <div className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                <div className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium shrink-0 ${
                   selected.ai_decision === 'CONTINUE' 
                     ? 'bg-green-100 text-green-800' 
                     : 'bg-red-100 text-red-800'
@@ -266,49 +292,49 @@ export default function DeploymentDashboard() {
               </div>
 
               {/* Decision Card */}
-              <div className={`rounded-lg border p-4 mb-6 ${
+              <div className={`rounded-lg border p-3 sm:p-4 mb-4 sm:mb-6 ${
                 selected.ai_decision === 'CONTINUE' 
                   ? 'bg-green-50 border-green-200' 
                   : 'bg-red-50 border-red-200'
               }`}>
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div className="flex-1">
                     <div className="text-sm font-medium text-gray-700 mb-1">AI Decision</div>
                     <p className="text-sm text-gray-600">{selected.ai_summary}</p>
                   </div>
-                  <div className="text-right ml-4">
-                    <div className="text-2xl font-bold text-gray-900">{(selected.ai_confidence * 100).toFixed(0)}%</div>
+                  <div className="text-left sm:text-right">
+                    <div className="text-xl sm:text-2xl font-bold text-gray-900">{(selected.ai_confidence * 100).toFixed(0)}%</div>
                     <div className="text-xs text-gray-500">confidence</div>
                   </div>
                 </div>
               </div>
 
               {/* Metrics Grid */}
-              <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 <div className="border border-gray-200 rounded-lg p-3">
                   <div className="text-xs text-gray-500 mb-1">Health Score</div>
-                  <div className={`text-xl font-semibold ${
+                  <div className={`text-lg sm:text-xl font-semibold ${
                     selected.health_score >= 70 ? 'text-green-600' :
                     selected.health_score >= 50 ? 'text-yellow-600' : 'text-red-600'
                   }`}>{selected.health_score}</div>
                 </div>
                 <div className="border border-gray-200 rounded-lg p-3">
                   <div className="text-xs text-gray-500 mb-1">Error Rate</div>
-                  <div className={`text-xl font-semibold ${
+                  <div className={`text-lg sm:text-xl font-semibold ${
                     parseFloat(selected.metrics.error_rate) < 10 ? 'text-green-600' :
                     parseFloat(selected.metrics.error_rate) < 20 ? 'text-yellow-600' : 'text-red-600'
                   }`}>{selected.metrics.error_rate}</div>
                 </div>
                 <div className="border border-gray-200 rounded-lg p-3">
                   <div className="text-xs text-gray-500 mb-1">Memory</div>
-                  <div className={`text-xl font-semibold ${
+                  <div className={`text-lg sm:text-xl font-semibold ${
                     parseFloat(selected.metrics.memory_usage) < 70 ? 'text-green-600' :
                     parseFloat(selected.metrics.memory_usage) < 85 ? 'text-yellow-600' : 'text-red-600'
                   }`}>{selected.metrics.memory_usage}</div>
                 </div>
                 <div className="border border-gray-200 rounded-lg p-3">
                   <div className="text-xs text-gray-500 mb-1">Response</div>
-                  <div className={`text-xl font-semibold ${
+                  <div className={`text-lg sm:text-xl font-semibold ${
                     parseFloat(selected.metrics.response_time) < 500 ? 'text-green-600' :
                     parseFloat(selected.metrics.response_time) < 1500 ? 'text-yellow-600' : 'text-red-600'
                   }`}>{selected.metrics.response_time}</div>
@@ -316,19 +342,19 @@ export default function DeploymentDashboard() {
               </div>
 
               {/* Details */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
-                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+              <div className="border border-gray-200 rounded-lg overflow-hidden mb-4 sm:mb-6">
+                <div className="bg-gray-50 px-3 sm:px-4 py-2 border-b border-gray-200">
                   <span className="text-sm font-medium text-gray-700">Details</span>
                 </div>
-                <div className="p-4">
-                  <dl className="grid grid-cols-2 gap-4 text-sm">
+                <div className="p-3 sm:p-4">
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                     <div>
                       <dt className="text-gray-500">Execution ID</dt>
-                      <dd className="font-mono text-gray-900 mt-0.5 text-xs">{selected.id}</dd>
+                      <dd className="font-mono text-gray-900 mt-0.5 text-xs break-all">{selected.id}</dd>
                     </div>
                     <div>
                       <dt className="text-gray-500">Timestamp</dt>
-                      <dd className="text-gray-900 mt-0.5">{new Date(selected.timestamp).toLocaleString()}</dd>
+                      <dd className="text-gray-900 mt-0.5 text-xs sm:text-sm">{new Date(selected.timestamp).toLocaleString()}</dd>
                     </div>
                     <div>
                       <dt className="text-gray-500">Status</dt>
@@ -343,11 +369,11 @@ export default function DeploymentDashboard() {
               </div>
 
               {/* AI Reasoning */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
-                <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+              <div className="border border-gray-200 rounded-lg overflow-hidden mb-4 sm:mb-6">
+                <div className="bg-gray-50 px-3 sm:px-4 py-2 border-b border-gray-200">
                   <span className="text-sm font-medium text-gray-700">AI Reasoning</span>
                 </div>
-                <div className="p-4">
+                <div className="p-3 sm:p-4">
                   <p className="text-sm text-gray-600 leading-relaxed">{selected.ai_reasoning}</p>
                 </div>
               </div>
@@ -355,21 +381,21 @@ export default function DeploymentDashboard() {
               {/* Logs */}
               {selected.logs && (
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+                  <div className="bg-gray-50 px-3 sm:px-4 py-2 border-b border-gray-200 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Logs</span>
                     <button
                       onClick={() => navigator.clipboard.writeText(selected.logs || '')}
-                      className="text-xs text-gray-500 hover:text-gray-700"
+                      className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1"
                     >
                       Copy
                     </button>
                   </div>
-                  <pre className="p-4 text-xs font-mono text-gray-600 bg-gray-900 text-gray-300 overflow-x-auto max-h-64">{selected.logs}</pre>
+                  <pre className="p-3 sm:p-4 text-xs font-mono bg-gray-900 text-gray-300 overflow-x-auto max-h-48 sm:max-h-64">{selected.logs}</pre>
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full">
+            <div className="flex items-center justify-center h-full p-4">
               <div className="text-center">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -377,7 +403,13 @@ export default function DeploymentDashboard() {
                   </svg>
                 </div>
                 <h3 className="text-sm font-medium text-gray-900 mb-1">No deployment selected</h3>
-                <p className="text-xs text-gray-500">Select from the list or trigger a new deployment</p>
+                <p className="text-xs text-gray-500 mb-3">Select from the list or trigger a new deployment</p>
+                <button
+                  onClick={() => setShowSidebar(true)}
+                  className="lg:hidden px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  View Deployments
+                </button>
               </div>
             </div>
           )}
@@ -386,8 +418,8 @@ export default function DeploymentDashboard() {
 
       {/* Clear History Modal */}
       {showClearModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Clear History?</h3>
             <p className="text-sm text-gray-500 mb-4">This will remove all deployments from the view. This action cannot be undone.</p>
             <div className="flex justify-end gap-2">
