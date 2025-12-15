@@ -1,347 +1,305 @@
-# 🚀 AI DevOps Commander
+# AI DevOps Commander
 
-**Intelligent AI-Powered Deployment Decision System**
+> *An experimental AI-driven DevOps automation prototype that observes deployments, summarizes system signals, and automates response workflows.*
 
-> Real-time deployment analysis with AI decision-making, automated remediation, and continuous learning.
+[![Built with Cline](https://img.shields.io/badge/Built%20with-Cline-blue)](https://github.com/cline/cline)
+[![Orchestrated by Kestra](https://img.shields.io/badge/Orchestrated%20by-Kestra-orange)](https://kestra.io)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://vercel.com)
+[![Powered by Oumi](https://img.shields.io/badge/Powered%20by-Oumi-green)](https://oumi.ai)
+[![Reviewed by CodeRabbit](https://img.shields.io/badge/Reviewed%20by-CodeRabbit-purple)](https://coderabbit.ai)
 
-[![AI Agents Assemble Hackathon](https://img.shields.io/badge/Hackathon-AI%20Agents%20Assemble-blue)](https://lu.ma/dfy0o7ne)
-[![Kestra](https://img.shields.io/badge/Orchestration-Kestra-orange)](https://kestra.io)
-[![Together AI](https://img.shields.io/badge/AI-Together%20AI-green)](https://together.ai)
-[![Oumi RL](https://img.shields.io/badge/RL-Oumi-purple)](https://oumi.ai)
-[![Cline](https://img.shields.io/badge/Automation-Cline-red)](https://github.com/cline/cline)
-[![CodeRabbit](https://img.shields.io/badge/Reviews-CodeRabbit-yellow)](https://coderabbit.ai)
+---
+This README explains:
+- the real-world problem this project addresses
+- the system architecture
+- how the automation works end to end
+- how to run the prototype locally
+
+## About this project
+
+I built this prototype to explore how AI could help automate some of the repetitive and manual tasks in DevOps, especially around incident response after deployments. The idea came from seeing how often engineers have to dig through logs and metrics manually to figure out what went wrong, which slows down fixing issues and increases downtime. This project tries to automate observing system signals, summarizing them, and making simple decisions like rolling back or scaling automatically. It’s an early prototype using mocked data to demonstrate the concept.
 
 ---
 
-## 🎯 Problem Statement
+## The problem
 
-**85% of production incidents** are caused by bad deployments. Manual rollback decisions are slow, error-prone, and require human intervention 24/7.
+DevOps workflows often rely on manual steps and reacting after problems occur. Typically, after code is deployed:
 
-**Our Solution:** AI-powered deployment guardian that:
-- ✅ Analyzes deployments in real-time (< 1 second)
-- ✅ Makes intelligent ROLLBACK/CONTINUE decisions
-- ✅ Automates remediation with AI-generated fixes
-- ✅ Learns from every deployment (RL)
-- ✅ Prevents production outages before they happen
+- Logs and metrics start coming in
+- Alerts might fire
+- Engineers have to investigate logs and metrics manually
+- It’s easy to lose context or make rushed decisions
+- Systems can stay degraded longer than necessary
 
----
+This slows down recovery and iteration.
 
-## 🏆 Prize Category Integrations
+### What usually happens
 
-### 🔶 Kestra - Best Use of Kestra
-**Integration:** Complete workflow orchestration engine
-- ✅ Custom workflow: ai-devops-workflow 
-- ✅ Real-time execution tracking
-- ✅ Webhook triggers for deployment events
-- ✅ Process runner for Python AI scripts
-- **Location:** /kestra/workflows/ai-devops-workflow.yml
+1. Code is merged
+2. Tests pass
+3. Deployment succeeds
+4. Then nothing for a while
+5. After some time, error rates spike
+6. Someone manually checks logs
+7. They try to guess the root cause
+8. Rollback or patch is applied
+9. Same process repeats next time
 
-### 🟢 Together AI - Best Use of Together AI
-**Integration:** AI decision engine (production-ready)
-- ✅ Integration code: ai_decision task in workflow
-- ✅ Model: Meta-Llama-3.1-8B-Instruct-Turbo
-- ✅ Smart algorithmic fallback (works without API key)
-- ✅ Real-time deployment health analysis
-- **Status:** Ready to activate with API key
-
-### 🟣 Oumi RL - Best Use of Oumi RL
-**Integration:** Reinforcement Learning training data collection
-- ✅ STEP 3 in workflow: collect_training_data
-- ✅ State: 7-dimensional feature vector (metrics + health)
-- ✅ Action: ROLLBACK/CONTINUE decisions
-- ✅ Reward: Post-deployment outcome tracking
-- ✅ JSON format ready for RL model training
-- **Location:** Embedded in workflow, line 66-81
-
-### 🔴 Cline - Best Use of Cline
-**Integration:** Automated code remediation
-- ✅ STEP 4 in workflow: Triggers on ROLLBACK
-- ✅ Automated fix generation
-- ✅ PR creation pipeline
-- ✅ Test execution automation
-- **Location:** Lines 83-96 in workflow
-
-### 🟡 CodeRabbit - Best Use of CodeRabbit
-**Integration:** Automated PR reviews
-- ✅ Installed in GitHub repository
-- ✅ Reviews all pull requests
-- ✅ Code quality analysis
-- ✅ Security scanning
-- **Status:** Active on repository
+This pattern is common in many teams shipping daily.
 
 ---
 
-## 🎬 Live Demo
+## The solution
 
-**Watch it in action:**
-1. Open Kestra: http://localhost:8080
-2. Open Dashboard: http://localhost:3001
-3. Execute workflow → See AI decision in < 1s
-4. View real-time results in dashboard
+This prototype tries to automate the post-deployment observation and response process by:
 
----
+1. Deploying code through standard pipelines
+2. Collecting logs, metrics, and traces automatically
+3. Using an AI agent (Kestra) to summarize system health
+4. Applying a reinforcement learning model (Oumi) to decide on actions
+5. Executing automatic responses like rollback or scaling
+6. Recording outcomes to improve decision policies over time
 
-## 🏗️ Architecture
+### How it works in practice
 
-\`\`\`
-┌─────────────┐
-│  Deployment │
-│   Trigger   │
-└──────┬──────┘
-       │
-       v
-┌─────────────────────────────────────┐
-│         KESTRA WORKFLOW             │
-│  (ai-devops-workflow)               │
-│                                     │
-│  STEP 1: Collect Metrics            │
-│  ├─ Error Rate                      │
-│  ├─ Memory Usage                    │
-│  ├─ CPU Usage                       │
-│  └─ Response Time                   │
-│                                     │
-│  STEP 2: AI Decision (Together AI)  │
-│  ├─ Health Score Calculation        │
-│  ├─ Critical Issue Detection        │
-│  └─ ROLLBACK/CONTINUE Decision      │
-│                                     │
-│  STEP 3: RL Data Collection (Oumi)  │
-│  ├─ State: 7D Feature Vector        │
-│  ├─ Action: ROLLBACK/CONTINUE       │
-│  └─ Reward: Outcome Tracking        │
-│                                     │
-│  STEP 4: Automation (Cline)         │
-│  └─ Trigger Remediation if ROLLBACK │
-└─────────────┬───────────────────────┘
-              │
-              v
-       ┌──────────────┐
-       │  Dashboard   │
-       │  (Next.js)   │
-       │              │
-       │  Real-time   │
-       │  Results     │
-       └──────────────┘
-\`\`\`
+1. Code is merged and deployed
+2. AI immediately starts observing system signals
+3. Logs and metrics are summarized within about 30 seconds
+4. The system detects issues like increased error rates or memory leaks
+5. If needed, an automatic rollback is triggered
+6. The outcome is recorded and used to improve future decisions
+
+This shows how summarization and decision-making can reduce manual investigation time in a controlled setting.
 
 ---
 
-## 🚀 Quick Start
+## Architecture
+
+This section describes the main components of the system and how data flows between them during a deployment event.
+
+### Components
+
+```
+AI DevOps Commander
+
+1. Code creation          → Cline (autonomous code fixes)
+2. Code review            → CodeRabbit (PR hygiene)
+3. Orchestration + Brain  → Kestra (workflows + AI decisions)
+4. Learning               → Oumi (reinforcement learning policy)
+5. Visibility             → Vercel (dashboard UI)
+```
+
+### Workflow overview
+
+At a high level, the system reacts to a deployment event, gathers runtime signals, summarizes them using an AI agent, makes a decision, and then executes an action automatically.
+
+```mermaid
+graph TB
+    A[Code Deployed] --> B[Kestra Workflow Triggered]
+    B --> C[Collect Logs & Metrics]
+    C --> D[Kestra AI Agent Summarizes]
+    D --> E{Oumi RL Model Decides}
+    E -->|Healthy| F[Continue Monitoring]
+    E -->|Unhealthy| G[Auto Rollback/Scale]
+    G --> H[Record Outcome]
+    H --> I[Oumi Model Learns]
+    I --> E
+    F --> J[Show in Vercel Dashboard]
+    G --> J
+```
+
+All data used here is simulated to keep the demo deterministic.
+
+---
+
+## Key features explained
+
+### Autonomous observation loop (Kestra)
+
+- Listens for deployment events
+- Gathers logs from different sources automatically
+- Uses Kestra’s AI agent to summarize the data
+- Avoids manual log inspection
+
+### Decision making (Oumi RL)
+
+- Uses a trained policy to decide whether to deploy or rollback
+- Learns from previous outcomes to improve decisions
+- Aims to reduce downtime and error rates
+
+### Automated remediation suggestions (Cline)
+
+- Generates code fixes and scaffolds pull requests for review
+
+### Code quality (CodeRabbit)
+
+- Ensures all changes are reviewed by AI
+- Enforces documentation and code quality standards
+- Keeps pull request history clean
+
+### Dashboard (Vercel)
+
+- Shows real-time deployment status and AI reasoning
+- Displays decision history and audit trail of actions
+
+---
+
+## Demo walkthrough (conceptual)
+
+1. Deploy code → service goes live
+2. Logs start streaming → Kestra collects data
+3. AI summarizes → e.g., "Memory leak detected, error rate 35%"
+4. Model decides → e.g., "Rollback recommended (87% confidence)"
+5. Action executes → previous version restored automatically
+6. Dashboard updates → timeline, reasoning, outcome shown
+7. System learns → improves response for next similar incident
+
+This demo illustrates an end-to-end incident response workflow with automated observation and action.
+
+---
+
+## Tech stack
+
+| Component       | Tool       | Purpose                         |
+|-----------------|------------|--------------------------------|
+| Orchestration   | Kestra     | Workflow engine and AI summarization |
+| Code automation | Cline      | Autonomous code generation      |
+| Code quality    | CodeRabbit | PR reviews and code hygiene     |
+| Learning        | Oumi       | Reinforcement learning training |
+| Frontend        | Vercel     | Dashboard hosting and UI        |
+
+---
+
+## Project structure
+
+```
+ai-devops-commander/
+├── README.md                           # This file
+├── ARCHITECTURE.md                     # Detailed system design
+├── QUICKSTART.md                       # Fast setup guide
+├── CONTRIBUTING.md                     # How to contribute
+├── DEPLOYMENT.md                       # Production deployment
+├── setup.sh                            # One-command setup script
+├── kestra/
+│   ├── docker-compose.yml              # Kestra + PostgreSQL
+│   ├── README.md                       # Kestra-specific docs
+│   └── workflows/
+│       └── devops-loop.yml             # Main AI workflow (429 lines)
+├── dashboard/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── deployments/route.ts    # Fetch from Kestra API
+│   │   │   └── trigger/route.ts        # Webhook trigger
+│   │   ├── page.tsx                    # Main dashboard page
+│   │   └── layout.tsx                  # App layout
+│   ├── components/
+│   │   └── DeploymentDashboard.tsx     # Real-time UI component
+│   ├── package.json                    # Next.js 14, React 18
+│   └── vercel.json                     # Vercel deployment config
+├── cline-automation/
+│   ├── trigger-cline.sh                # Main automation entry
+│   ├── auto-fix-performance.sh         # Performance fixes
+│   └── auto-fix-generic.sh             # Fallback remediation
+├── cline-scripts/
+│   ├── auto-fix-memory-leak.sh         # Memory leak fixes
+│   └── auto-fix-database-timeout.sh    # DB optimization
+├── oumi/
+│   ├── train_deployment_policy.ipynb   # RL training notebook
+│   └── README.md                       # Oumi setup docs
+└── mock-data/
+    ├── logs.json                       # Sample log data
+    ├── metrics.json                    # Sample metrics
+    └── deployments.json                # Sample history
+```
+
+---
+
+## Getting started
+
+This is a prototype using mocked data and is intended for demonstration only.
 
 ### Prerequisites
-- Docker Desktop (running)
-- Node.js 18+
-- Git
 
-### 1. Clone Repository
-\`\`\`bash
+- Docker (for running Kestra + PostgreSQL)
+- Node.js 18+ (for the Next.js dashboard)
+- Git (to clone the repo)
+
+That's it. No Python installation needed (runs in Kestra container).
+
+### Quick start
+
+```bash
+# Clone repo
 git clone https://github.com/rishi-jat/ai-devops-commander
 cd ai-devops-commander
-\`\`\`
 
-### 2. Start Kestra
-\`\`\`bash
+# Use the setup script (easiest way)
+./setup.sh
+
+# Or manual setup:
+
+# 1. Start Kestra
 cd kestra
 docker-compose up -d
-\`\`\`
 
-**Verify:** Open http://localhost:8080
+# 2. Create workflow in Kestra UI
+# - Open http://localhost:8080
+# - Go to Flows → Create Flow
+# - Copy content from kestra/workflows/devops-loop.yml
+# - Save it
 
-### 3. Load Workflow
-1. Open Kestra UI
-2. Create new flow
-3. Copy content from kestra/workflows/ai-devops-workflow.yml
-4. Paste and Save
-
-### 4. Start Dashboard
-\`\`\`bash
-cd dashboard
+# 3. Start dashboard
+cd ../dashboard
 npm install
 npm run dev
-\`\`\`
 
-**Verify:** Open http://localhost:3000
-
-### 5. Execute Test
-1. In Kestra UI, click **Execute**
-2. Watch logs show 4 steps
-3. Dashboard auto-refreshes with results
-
-**Done/Users/rishijat/Desktop/ai-devops-commander/dashboard && npm run dev 2>&1 | head -50* You will see:
-- ✅ AI decision (ROLLBACK/CONTINUE)
-- ✅ Health score calculation
-- ✅ RL training data
-- ✅ Cline automation status
+# 4. Open browser
+open http://localhost:3000
+open http://localhost:8080
+```
 
 ---
 
-## 📊 Features
+## Demo video
 
-### Real-time AI Analysis
-- **< 1 second** decision time
-- **90%+** confidence scores
-- **4-step** analysis pipeline
+[Link to demo video showing the autonomous loop]
 
-### Intelligent Decision Logic
-- Health score: 0-100 based on metrics
-- Critical issue detection
-- Multi-factor decision making
-
-### Reinforcement Learning
-- Continuous learning from deployments
-- State-action-reward tracking
-- Model improvement over time
-
-### Automated Remediation
-- Cline triggers on ROLLBACK
-- AI-generated fixes
-- Automated PR creation
+The video shows the deployment trigger, log collection, AI summarization, decision making, automatic action, and dashboard visualization.
 
 ---
 
-## 🧪 Testing
+## Contributing
 
-### Test Scenario 1: ROLLBACK Decision
-\`\`\`bash
-# In Kestra UI, execute workflow
-# Expected: High error rate → ROLLBACK decision
-# Check logs for "STEP 4: TRIGGERED"
-\`\`\`
+This project is open source and follows basic practices like code review via CodeRabbit and documentation. Contributions are welcome.
 
-### Test Scenario 2: CONTINUE Decision
-\`\`\`bash
-# Execute multiple times until healthy metrics
-# Expected: Low error rate → CONTINUE decision
-# Check logs for "STEP 4: STANDBY"
-\`\`\`
-
-### Test Scenario 3: Dashboard Integration
-\`\`\`bash
-# Execute workflow 3+ times
-# Open http://localhost:3001
-# Expected: Real execution data displayed
-# Auto-refresh every 3 seconds
-\`\`\`
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 
-## 📁 Project Structure
+## License
 
-\`\`\`
-ai-devops-commander/
-├── kestra/
-│   ├── workflows/
-│   │   └── ai-devops-workflow.yml    ← Main AI workflow
-│   └── docker-compose.yml
-├── dashboard/                         ← Real-time UI
-│   ├── app/
-│   │   └── api/deployments/          ← Kestra integration
-│   └── components/
-│       └── DeploymentDashboard.tsx
-├── cline-scripts/                     ← Automation scripts
-├── oumi/                              ← RL training configs
-└── README.md
-\`\`\`
+MIT License - see [LICENSE](LICENSE)
 
 ---
 
-## 🎥 Demo Video Script
+## Acknowledgments
 
-### 0:00-0:30 - Problem
-"85% of production issues come from bad deployments. Manual decisions are slow."
+This project uses:
 
-### 0:30-1:00 - Solution
-"AI DevOps Commander analyzes deployments in real-time and makes instant decisions."
-
-### 1:00-2:00 - Live Demo
-1. Open Kestra workflow
-2. Execute → Show logs
-3. Point out 4 steps
-4. Show AI decision
-5. Open dashboard
-6. Show real-time results
-
-### 2:00-2:30 - Tech Stack
-- Kestra: Orchestration
-- Together AI: Decision engine
-- Oumi RL: Continuous learning
-- Cline: Automated fixes
-- CodeRabbit: Code reviews
-
-### 2:30-3:00 - Impact
-"Prevents production outages. Learns from every deployment. Saves engineering time."
+- [Cline](https://github.com/cline/cline) for autonomous coding  
+- [Kestra](https://kestra.io) for workflow orchestration  
+- [Vercel](https://vercel.com) for dashboard hosting  
+- [Oumi](https://oumi.ai) for reinforcement learning  
+- [CodeRabbit](https://coderabbit.ai) for AI code review  
 
 ---
 
-## 🏅 Hackathon Prizes
+## Connect
 
-**Competing for ALL sponsor prizes:**
-- ✅ **Kestra:** Complete workflow orchestration
-- ✅ **Together AI:** AI decision engine (production-ready)
-- ✅ **Oumi RL:** RL training data collection
-- ✅ **Cline:** Automated remediation
-- ✅ **CodeRabbit:** PR review automation
+- Twitter/X: https://twitter.com/rishixtwt  
+- GitHub: https://github.com/rishi-jat  
+- LinkedIn: https://linkedin.com/in/rishi-jat-496245320  
 
 ---
 
-## 🔧 Technology Stack
-
-- **Orchestration:** Kestra 1.1.9
-- **AI Engine:** Together AI (Meta-Llama 3.1)
-- **ML:** Oumi RL (reinforcement learning)
-- **Automation:** Cline
-- **Code Review:** CodeRabbit
-- **Frontend:** Next.js 14, TypeScript
-- **Backend:** Python 3.10
-- **Database:** PostgreSQL
-- **Container:** Docker
-
----
-
-## 📈 Real-World Impact
-
-### Before AI DevOps Commander
-- ⏰ Average rollback decision: **15-30 minutes**
-- 👨‍💻 Requires on-call engineer
-- 📊 Manual metric analysis
-- ❌ 85% of incidents from bad deploys
-
-### After AI DevOps Commander
-- ⚡ Instant decision: **< 1 second**
-- 🤖 Fully automated
-- 📊 AI-powered analysis
-- ✅ Prevent incidents before they happen
-
-**ROI:** Saves **40+ hours/month** per team
-
----
-
-## 👥 Team
-
-**Rishi Jat**
-- GitHub: [@rishi-jat](https://github.com/rishi-jat)
-- Email: techwithrishijat@gmail.com
-
----
-
-## 📜 License
-
-MIT License - Built for AI Agents Assemble Hackathon 2024
-
----
-
-## 🙏 Acknowledgments
-
-Special thanks to:
-- **Kestra** for workflow orchestration
-- **Together AI** for AI inference
-- **Oumi** for RL frameworks
-- **Cline** for automation tools
-- **CodeRabbit** for code reviews
-- **Hackathon Organizers** for this opportunity
-
----
-
-**Made with ❤️ for AI Agents Assemble Hackathon**
-
-🏆 Building the future of intelligent DevOps
+*Made with ❤️ by Rishi.*
