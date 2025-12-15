@@ -6,10 +6,9 @@
 
 If you want to understand this project quickly, start here:
 
-- 🎬 **YouTube Demo**: https://www.youtube.com/ (replace with actual link)
-- 💼 **LinkedIn Post**: https://www.linkedin.com/posts/rishi-jat_finally-recorded-the-demo-this-isai-activity
-- 🐦 **X (Twitter) Post**: https://x.com/rishixtwt/status/2000539194574479696
-- 📦 **GitHub Repository**: https://github.com/rishi-jat/ai-devops-commander
+- 🎬 **Demo Video**: [Watch on YouTube](https://www.linkedin.com/posts/rishi-jat_finally-recorded-the-demo-this-isai-activity-7406309185069617152-mFOS/)
+- 💼 **LinkedIn Post**: [View post](https://www.linkedin.com/posts/rishi-jat_finally-recorded-the-demo-this-isai-activity-7406309185069617152-mFOS/)
+- 🐦 **X (Twitter) Post**: [View thread](https://x.com/rishixtwt/status/2000539194574479696)
 
 The demo shows how **Kestra orchestrates the workflow end to end**, how AI summarizes deployment signals, how decisions are made, and how everything is surfaced in the dashboard.
 
