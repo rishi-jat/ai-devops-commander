@@ -279,18 +279,6 @@ open http://localhost:8080
 
 ---
 
-## Demo video
-
-🎬 **Watch the demo**: [Coming Soon]
-
-The video demonstrates:
-- Kestra workflow execution
-- Together AI analyzing deployment metrics
-- AI making CONTINUE/ROLLBACK decisions
-- Real-time dashboard visualization
-
----
-
 ## Contributing
 
 This project is open source and follows basic practices like code review via CodeRabbit and documentation. Contributions are welcome!
