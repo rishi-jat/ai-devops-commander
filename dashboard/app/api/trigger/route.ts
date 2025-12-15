@@ -69,12 +69,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Trigger error:', error)
-    // In demo mode (no Kestra), return a simulated success
+    // Return error when Kestra is not available
     return NextResponse.json({ 
-      success: true, 
-      executionId: `demo-${Date.now()}`,
-      message: 'Demo mode: Simulated deployment triggered',
-      demo: true
-    })
+      success: false, 
+      error: 'Kestra is not running. Start Kestra with: cd kestra && docker-compose up -d'
+    }, { status: 503 })
   }
 }

@@ -4,58 +4,6 @@ const KESTRA_API = process.env.KESTRA_API_URL || 'http://localhost:8080/api/v1'
 const KESTRA_USER = process.env.KESTRA_USER || 'admin@example.com'
 const KESTRA_PASS = process.env.KESTRA_PASS || 'Admin123!'
 
-// Demo data for when Kestra is not available (e.g., Vercel deployment)
-const DEMO_DATA = [
-  {
-    id: 'demo-exec-001',
-    deployment_id: 'prod-api-v2.1.0',
-    service: 'api-gateway',
-    version: 'v2.1.0',
-    environment: 'production',
-    timestamp: new Date(Date.now() - 300000).toISOString(),
-    status: 'healthy',
-    ai_summary: 'Deployment healthy. All metrics within acceptable ranges.',
-    ai_decision: 'CONTINUE',
-    ai_confidence: 0.94,
-    ai_reasoning: 'Error rate 2.3% is below threshold. Memory usage 54% is optimal. Response time 145ms meets SLA.',
-    health_score: 87,
-    metrics: { error_rate: '2.3%', memory_usage: '54%', response_time: '145ms' },
-    logs: 'INFO: Deployment started\nINFO: Health check passed\nINFO: Metrics collected\nINFO: AI Decision: CONTINUE'
-  },
-  {
-    id: 'demo-exec-002',
-    deployment_id: 'prod-payment-v1.8.3',
-    service: 'payment-service',
-    version: 'v1.8.3',
-    environment: 'production',
-    timestamp: new Date(Date.now() - 600000).toISOString(),
-    status: 'rolled_back',
-    ai_summary: 'Critical: High error rate detected. Automatic rollback initiated.',
-    ai_decision: 'ROLLBACK',
-    ai_confidence: 0.91,
-    ai_reasoning: 'Error rate 23.5% exceeds 15% threshold. Memory usage 89% is critical. Immediate rollback required.',
-    health_score: 32,
-    metrics: { error_rate: '23.5%', memory_usage: '89%', response_time: '3200ms' },
-    logs: 'INFO: Deployment started\nWARN: High error rate detected\nERROR: Memory threshold exceeded\nINFO: AI Decision: ROLLBACK\nINFO: Rollback completed'
-  },
-  {
-    id: 'demo-exec-003',
-    deployment_id: 'prod-auth-v3.0.1',
-    service: 'auth-service',
-    version: 'v3.0.1',
-    environment: 'production',
-    timestamp: new Date(Date.now() - 900000).toISOString(),
-    status: 'healthy',
-    ai_summary: 'Deployment stable. Performance metrics excellent.',
-    ai_decision: 'CONTINUE',
-    ai_confidence: 0.97,
-    ai_reasoning: 'All metrics nominal. Error rate 0.8%, Memory 42%, Response time 98ms. Excellent deployment.',
-    health_score: 95,
-    metrics: { error_rate: '0.8%', memory_usage: '42%', response_time: '98ms' },
-    logs: 'INFO: Deployment started\nINFO: All checks passed\nINFO: AI Decision: CONTINUE'
-  }
-]
-
 export async function GET(request: NextRequest) {
   try {
     const auth = Buffer.from(`${KESTRA_USER}:${KESTRA_PASS}`).toString('base64')
@@ -193,8 +141,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(deployments)
   } catch (error) {
     console.error('Failed to fetch from Kestra:', error)
-    // Return demo data when Kestra is not available
-    return NextResponse.json(DEMO_DATA)
+    // Return empty array when Kestra is not available
+    return NextResponse.json([])
   }
 }
 
